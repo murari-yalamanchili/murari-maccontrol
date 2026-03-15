@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05050f">
+<title>Murari MacControl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05050f; --s1:#0a0a1a; --s2:#0f0f22; --card:#13132a; --card2:#181835;
+  --brd:rgba(255,255,255,.07); --brd2:rgba(255,255,255,.13);
+  --a1:#5e4fff; --a2:#ff4f9a; --a3:#3dffa0; --a4:#ffa83d; --a5:#3dcfff;
+  --txt:#ecedf8; --muted:#565680; --danger:#ff4a4a;
+  --r:14px; --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);display:flex;flex-direction:column}
+
+/* ═══════════════ LOGIN ══════════════════════════════════ */
+#login-screen{
+  position:fixed;inset:0;z-index:300;
+  background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:20px 28px calc(var(--sb)+28px);
+}
+.lg-logo{font-size:54px;margin-bottom:6px}
+.lg-brand{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:4px}
+.lg-title{font-size:28px;font-weight:800;letter-spacing:-.5px;
+  background:linear-gradient(135deg,var(--a1),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.lg-sub{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.5;margin-bottom:30px}
+/* Dots */
+.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:22px;height:16px}
+.pin-dot{width:12px;height:12px;border-radius:50%;background:var(--brd2);
+  transition:background .15s,transform .15s}
+.pin-dot.filled{background:var(--a1);transform:scale(1.15)}
+/* Numpad */
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:100%;max-width:290px}
+.np-btn{
+  height:66px;border-radius:18px;background:var(--s2);border:1px solid var(--brd2);
+  color:var(--txt);font-size:24px;font-weight:600;font-family:'Inter',sans-serif;
+  cursor:pointer;touch-action:manipulation;transition:transform .1s,background .12s;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+}
+.np-btn:active{transform:scale(.86);background:var(--a1)}
+.np-letters{font-size:7px;font-weight:600;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.np-del{font-size:19px}
+.np-go{background:linear-gradient(135deg,var(--a1),var(--a2));border-color:transparent;font-size:18px;font-weight:700}
+.lg-setup-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted);
+  text-align:center;text-transform:uppercase;margin-bottom:10px;display:none}
+.lg-fp{background:var(--s2);border:1px solid var(--brd);border-radius:10px;
+  padding:9px 12px;font-family:'DM Mono',monospace;font-size:9px;color:var(--a5);
+  word-break:break-all;text-align:center;line-height:1.6;margin-bottom:12px;display:none}
+.lg-err{margin-top:14px;font-size:12px;color:var(--danger);text-align:center;min-height:18px}
+
+/* ═══════════════ STATUS BAR ══════════════════════════════ */
+#sbar{
+  flex-shrink:0;position:relative;z-index:20;
+  padding:calc(var(--st)+6px) 14px 7px;
+  background:rgba(5,5,15,.95);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--brd);
+  display:flex;align-items:center;gap:0;
+}
+/* Branding in status bar */
+.sb-brand{display:flex;align-items:baseline;gap:4px;flex:0 0 auto}
+.sb-brand-name{font-size:12px;font-weight:800;letter-spacing:-.3px;
+  background:linear-gradient(135deg,var(--a1),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-brand-beta{font-size:7px;font-weight:700;letter-spacing:.5px;
+  color:var(--a4);text-transform:uppercase;
+  background:rgba(255,168,61,.12);border:1px solid rgba(255,168,61,.3);
+  border-radius:4px;padding:1px 4px;vertical-align:super;
+  -webkit-text-fill-color:var(--a4)}
+.sbseg{display:flex;align-items:center;gap:5px;flex:1;justify-content:center}
+.sbseg:last-child{justify-content:flex-end}
+.sbico{font-size:12px}
+.sbtxt{font-size:10px;font-weight:600;color:var(--muted);font-family:'DM Mono',monospace}
+.sbtxt.ok{color:var(--a3)}.sbtxt.warn{color:var(--a4)}.sbtxt.bad{color:var(--danger)}
+/* Signal bars */
+.sigbars{display:flex;align-items:flex-end;gap:2px;height:13px}
+.sigbar{width:3px;border-radius:1px;background:var(--brd2);transition:background .35s}
+.sigbar:nth-child(1){height:4px}.sigbar:nth-child(2){height:7px}
+.sigbar:nth-child(3){height:10px}.sigbar:nth-child(4){height:13px}
+.sigbar.on{background:var(--a3)}.sigbar.warn{background:var(--a4)}.sigbar.bad{background:var(--danger)}
+/* Battery */
+.battbody{width:20px;height:10px;border:1.5px solid var(--muted);border-radius:2px;
+  position:relative;display:flex;align-items:center;padding:1.5px}
+.battbody::after{content:'';width:2px;height:4px;background:var(--muted);
+  border-radius:0 1px 1px 0;position:absolute;right:-4px}
+.battfill{height:100%;border-radius:1px;background:var(--a3);transition:width .5s,background .5s}
+.battfill.warn{background:var(--a4)}.battfill.low{background:var(--danger)}
+
+/* ═══════════════ TABS ════════════════════════════════════ */
+.tabs{flex-shrink:0;display:flex;gap:4px;padding:7px 12px 5px;
+  overflow-x:auto;scrollbar-width:none;position:relative;z-index:10}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:5px 12px;border-radius:100px;
+  font-size:11px;font-weight:600;letter-spacing:.2px;
+  background:var(--s2);border:1px solid var(--brd);color:var(--muted);
+  cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.tab.active{background:var(--a1);border-color:var(--a1);color:#fff}
+.tab:active{transform:scale(.91)}
+
+/* ═══════════════ PANE ════════════════════════════════════ */
+.pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:8px 13px calc(var(--sb)+28px);scrollbar-width:none;position:relative;z-index:1}
+.pane::-webkit-scrollbar{display:none}
+.page{display:none}.page.active{display:block}
+
+/* ═══════════════ CARDS ══════════════════════════════════ */
+.card{background:var(--card);border:1px solid var(--brd);
+  border-radius:var(--r);padding:13px 14px;margin-bottom:11px}
+.clbl{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+.row{display:flex;gap:7px;align-items:center}
+
+/* ═══════════════ BTNS ═══════════════════════════════════ */
+.btn{display:flex;align-items:center;justify-content:center;
+  border-radius:11px;border:1px solid var(--brd);
+  background:var(--s2);color:var(--txt);font-family:'Inter',sans-serif;
+  cursor:pointer;touch-action:manipulation;transition:transform .1s,background .12s;font-weight:600}
+.btn:active{transform:scale(.87)}
+.btn.a1{background:var(--a1);border-color:var(--a1);color:#fff}
+.btn.a2{background:var(--a2);border-color:var(--a2);color:#fff}
+.btn.a3{background:var(--a3);border-color:var(--a3);color:#111}
+.btn.a4{background:var(--a4);border-color:var(--a4);color:#111}
+.btn.a5{background:var(--a5);border-color:var(--a5);color:#111}
+.btn.danger{border-color:#ff4a4a44;color:var(--danger)}
+.btn.warn{border-color:#ffa83d44;color:var(--a4)}
+.btn-ico{width:44px;height:44px;font-size:18px;flex-shrink:0}
+.btn-full{width:100%;height:42px;font-size:12px;border-radius:11px}
+.btn-half{flex:1;height:38px;font-size:11px;border-radius:10px}
+
+/* ═══════════════ INPUTS ═════════════════════════════════ */
+.inp{flex:1;background:var(--s1);border:1px solid var(--brd);
+  border-radius:10px;padding:9px 12px;color:var(--txt);
+  font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s}
+.inp:focus{border-color:var(--a1)}
+.inp.f2:focus{border-color:var(--a2)}.inp.f3:focus{border-color:var(--a3)}
+.inp.f5:focus{border-color:var(--a5)}
+textarea.inp{min-height:66px;resize:vertical;line-height:1.5}
+
+/* ═══════════════ NOW PLAYING ════════════════════════════ */
+#np-card{
+  border-radius:var(--r);overflow:hidden;margin-bottom:11px;
+  background:var(--card);border:1px solid var(--brd);position:relative;
+}
+.np-art-bg{
+  position:absolute;inset:0;background-size:cover;background-position:center;
+  filter:blur(28px) brightness(.35);transform:scale(1.1);
+  transition:background-image .6s;
+}
+.np-inner{position:relative;z-index:1;display:flex;gap:13px;align-items:center;padding:13px 14px}
+.np-art{width:58px;height:58px;border-radius:10px;object-fit:cover;
+  background:var(--s2);flex-shrink:0;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);}
+.np-art-placeholder{width:58px;height:58px;border-radius:10px;background:var(--s2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px}
+.np-info{flex:1;min-width:0}
+.np-track{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-artist{font-size:11.5px;color:rgba(255,255,255,.6);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-album{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-state{display:inline-flex;align-items:center;gap:4px;margin-top:6px;
+  font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--a3)}
+.np-state-dot{width:6px;height:6px;border-radius:50%;background:var(--a3);
+  animation:pulse-dot 1.5s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
+.np-state.paused{color:var(--muted)}.np-state.paused .np-state-dot{background:var(--muted);animation:none}
+.np-front{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.35);
+  padding:0 14px 10px;position:relative;z-index:1}
+
+/* ═══════════════ MEDIA ══════════════════════════════════ */
+.media-row{display:flex;gap:9px;margin-bottom:11px}
+.btn-med{flex:1;height:54px;border-radius:13px;font-size:20px}
+.btn-play-main{background:var(--a1)!important;border-color:var(--a1)!important;font-size:24px!important}
+.vol-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.vol-val{font-family:'DM Mono',monospace;font-size:13px;color:var(--a1)}
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;
+  background:var(--brd2);border-radius:3px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;
+  border-radius:50%;background:var(--a1);cursor:pointer;box-shadow:0 0 0 4px #5e4fff1e}
+
+/* ═══════════════ APPS ═══════════════════════════════════ */
+.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.app-tile{
+  aspect-ratio:1;border-radius:16px;
+  background:linear-gradient(145deg,var(--card2),var(--card));
+  border:1px solid var(--brd);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;cursor:pointer;touch-action:manipulation;
+  transition:transform .12s,box-shadow .15s;padding:5px;position:relative;overflow:hidden;
+}
+.app-tile::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.04),transparent);
+  pointer-events:none;
+}
+.app-tile:active{transform:scale(.83)}
+.app-tile .ico{font-size:26px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+.app-tile .app-icon-img{width:38px;height:38px;border-radius:10px;object-fit:cover;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.5));flex-shrink:0}
+.app-tile .lbl{font-size:8px;font-weight:600;color:rgba(255,255,255,.5);
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+/* Running indicator: green dot at bottom edge */
+.app-tile .run-dot{
+  position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;border-radius:50%;background:var(--a3);
+  box-shadow:0 0 6px var(--a3);display:none;
+}
+.app-tile.running .run-dot{display:block}
+.app-tile.running{border-color:rgba(61,255,160,.28);
+  box-shadow:0 0 0 1px rgba(61,255,160,.1) inset}
+.app-tile.running .lbl{color:var(--a3)}
+/* Manage (⋯) button on running tiles */
+.app-tile .tile-mgr{
+  position:absolute;top:4px;right:4px;
+  width:18px;height:18px;border-radius:5px;
+  background:rgba(0,0,0,.45);border:none;
+  font-size:9px;color:rgba(255,255,255,.6);
+  display:none;align-items:center;justify-content:center;
+  cursor:pointer;touch-action:manipulation;z-index:2;
+  line-height:1;
+}
+.app-tile.running .tile-mgr{display:flex}
+/* App action menu */
+.app-menu-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding:0 16px calc(var(--sb)+16px);
+}
+.app-menu{
+  width:100%;max-width:400px;
+  background:var(--card2);border:1px solid var(--brd2);
+  border-radius:20px;overflow:hidden;
+}
+.app-menu-header{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 18px 13px;border-bottom:1px solid var(--brd);
+}
+.app-menu-icon{width:44px;height:44px;border-radius:12px;background:var(--s2);
+  display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.app-menu-icon img{width:44px;height:44px;border-radius:12px;object-fit:cover}
+.app-menu-name{font-size:16px;font-weight:700}
+.app-menu-status{font-size:10px;color:var(--muted);margin-top:2px}
+.app-menu-status.running{color:var(--a3)}
+.app-menu-actions{display:flex;flex-direction:column}
+.app-menu-btn{
+  height:52px;border:none;background:none;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:500;
+  color:var(--txt);cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;gap:12px;padding:0 20px;
+  border-bottom:1px solid var(--brd);transition:background .12s;
+}
+.app-menu-btn:last-child{border-bottom:none}
+.app-menu-btn:active{background:rgba(255,255,255,.04)}
+.app-menu-btn .amb-ico{font-size:18px;width:24px;text-align:center}
+.app-menu-btn.danger{color:var(--danger)}
+.app-menu-btn.warn-btn{color:var(--a4)}
+.app-menu-cancel{
+  margin-top:8px;margin-bottom:0;
+  background:var(--s2);border:1px solid var(--brd2);border-radius:16px;
+  height:50px;font-size:14px;font-weight:600;color:var(--muted);
+  cursor:pointer;touch-action:manipulation;width:100%;
+  font-family:'Inter',sans-serif;transition:background .12s;
+}
+.app-menu-cancel:active{background:var(--card)}
+.sec-lbl{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--muted);margin:13px 0 7px 2px}
+.search-wrap{position:relative;margin-bottom:9px}
+.search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  font-size:13px;pointer-events:none;color:var(--muted)}
+.search-inp{width:100%;background:var(--s2);border:1px solid var(--brd);
+  border-radius:11px;padding:9px 13px 9px 33px;color:var(--txt);
+  font-size:13px;outline:none;font-family:'Inter',sans-serif;transition:border-color .2s}
+.search-inp:focus{border-color:var(--a1)}
+.ldrow{display:flex;align-items:center;justify-content:center;
+  gap:7px;color:var(--muted);font-size:11.5px;padding:20px;grid-column:span 4}
+
+/* ═══════════════ DASHBOARD ══════════════════════════════ */
+.dash-hero{
+  background:linear-gradient(135deg,rgba(94,79,255,.18),rgba(255,79,154,.12));
+  border:1px solid rgba(94,79,255,.25);border-radius:18px;
+  padding:16px 16px 14px;margin-bottom:11px;position:relative;overflow:hidden;
+}
+.dash-hero::before{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:100px;height:100px;border-radius:50%;
+  background:radial-gradient(circle,rgba(94,79,255,.25),transparent 70%);
+  pointer-events:none;
+}
+.dash-hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.dash-time{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1}
+.dash-date{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;font-weight:500}
+.dash-batt-big{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.dash-batt-pct{font-size:22px;font-weight:800;color:var(--a3)}
+.dash-batt-pct.warn{color:var(--a4)}.dash-batt-pct.low{color:var(--danger)}
+.dash-batt-lbl{font-size:9px;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px}
+.dash-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.dash-stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:9px 10px;text-align:center}
+.dash-stat-val{font-size:16px;font-weight:800;color:var(--txt)}
+.dash-stat-lbl{font-size:8px;color:var(--muted);font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;margin-top:2px}
+
+/* Dash quick-action grid */
+.dash-quick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px}
+.dash-qa{
+  height:60px;border-radius:14px;background:var(--card);border:1px solid var(--brd);
+  display:flex;align-items:center;gap:10px;padding:0 14px;
+  cursor:pointer;touch-action:manipulation;transition:transform .11s,background .12s;
+}
+.dash-qa:active{transform:scale(.93);background:var(--card2)}
+.dash-qa .dqa-ico{font-size:22px;flex-shrink:0}
+.dash-qa .dqa-info{flex:1;min-width:0}
+.dash-qa .dqa-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-qa .dqa-sub{font-size:9px;color:var(--muted);margin-top:1px}
+.dash-qa.a1{border-color:rgba(94,79,255,.3);background:rgba(94,79,255,.08)}
+.dash-qa.a2{border-color:rgba(255,79,154,.3);background:rgba(255,79,154,.08)}
+.dash-qa.a3{border-color:rgba(61,255,160,.3);background:rgba(61,255,160,.08)}
+.dash-qa.a4{border-color:rgba(255,168,61,.3);background:rgba(255,168,61,.08)}
+
+/* Dash running apps row */
+.dash-running{display:flex;gap:9px;overflow-x:auto;padding-bottom:3px;scrollbar-width:none}
+.dash-running::-webkit-scrollbar{display:none}
+.dash-app-chip{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;touch-action:manipulation;
+}
+.dash-app-chip .dac-icon{
+  width:46px;height:46px;border-radius:13px;
+  background:var(--card2);border:1px solid rgba(61,255,160,.25);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  position:relative;transition:transform .12s;overflow:hidden;
+}
+.dash-app-chip .dac-icon img{width:46px;height:46px;border-radius:13px;object-fit:cover}
+.dash-app-chip:active .dac-icon{transform:scale(.86)}
+.dash-app-chip .dac-dot{
+  position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;border-radius:50%;background:var(--a3);
+  box-shadow:0 0 5px var(--a3);
+}
+.dash-app-chip .dac-lbl{
+  font-size:8px;font-weight:600;color:rgba(255,255,255,.5);
+  max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
+}
+.dash-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.dash-section-hdr .clbl{margin:0}
+.dash-see-all{font-size:10px;font-weight:600;color:var(--a1);cursor:pointer;touch-action:manipulation}
+/* Spotify mini in dashboard */
+.dash-sp{
+  background:var(--card);border:1px solid var(--brd);border-radius:14px;
+  padding:11px 13px;margin-bottom:11px;display:flex;align-items:center;gap:11px;
+}
+.dash-sp-art{width:42px;height:42px;border-radius:8px;background:var(--s2);
+  flex-shrink:0;object-fit:cover}
+.dash-sp-art-ph{width:42px;height:42px;border-radius:8px;background:var(--s2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px}
+.dash-sp-info{flex:1;min-width:0}
+.dash-sp-track{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-sp-artist{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-sp-controls{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.dash-sp-btn{width:36px;height:36px;border-radius:10px;background:var(--s2);
+  border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;
+  font-size:15px;cursor:pointer;touch-action:manipulation;transition:transform .1s}
+.dash-sp-btn:active{transform:scale(.84);background:var(--a1)}
+
+/* ═══════════════ SAFARI ═════════════════════════════════ */
+.sf-bar{background:var(--s1);border:1px solid var(--brd);border-radius:11px;
+  padding:9px 12px;margin-bottom:9px}
+.sf-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sf-url{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.sf-btns{display:flex;gap:6px;margin-bottom:9px}
+.sf-btn{flex:1;height:40px;border-radius:10px;font-size:16px;
+  background:var(--card);border:1px solid var(--brd);color:var(--txt);
+  cursor:pointer;transition:transform .1s;touch-action:manipulation}
+.sf-btn:active{transform:scale(.86)}
+
+/* ═══════════════ TERMINAL ═══════════════════════════════ */
+.term-out{margin-top:8px;padding:10px;background:#000;border-radius:10px;
+  font-family:'DM Mono',monospace;font-size:10.5px;color:var(--a3);
+  max-height:180px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;
+  line-height:1.6;display:none}
+.term-out.show{display:block}
+.mode-row{display:flex;gap:6px;margin-top:7px}
+.mode-btn{flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;
+  border:1px solid var(--brd);background:var(--s2);color:var(--muted);
+  cursor:pointer;transition:all .14s;touch-action:manipulation}
+.mode-btn.on{background:var(--a3);border-color:var(--a3);color:#111}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.qbtn{height:35px;border-radius:9px;font-size:10.5px;background:var(--s2);
+  border:1px solid var(--brd);color:var(--txt);cursor:pointer;
+  transition:transform .1s;touch-action:manipulation;font-family:'Inter',sans-serif;font-weight:500}
+.qbtn:active{transform:scale(.9)}
+
+/* ═══════════════ UNLOCK ═════════════════════════════════ */
+.pw-wrap{position:relative}
+.pw-inp{width:100%;background:var(--s1);border:1px solid var(--brd);
+  border-radius:11px;padding:11px 44px 11px 14px;color:var(--txt);
+  font-family:'DM Mono',monospace;font-size:15px;letter-spacing:4px;
+  outline:none;transition:border-color .2s}
+.pw-inp:focus{border-color:var(--a2)}
+.pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;font-size:17px;cursor:pointer;color:var(--muted)}
+.unl-btn{width:100%;height:48px;border-radius:13px;margin-top:10px;
+  background:linear-gradient(135deg,var(--a1),var(--a2));
+  border:none;color:#fff;font-size:15px;font-weight:700;
+  font-family:'Inter',sans-serif;cursor:pointer;transition:transform .1s,opacity .12s}
+.unl-btn:active{transform:scale(.96);opacity:.82}
+.unl-res{margin-top:9px;padding:9px 12px;border-radius:9px;
+  font-size:11px;font-family:'DM Mono',monospace;text-align:center;display:none;line-height:1.5}
+.unl-res.show{display:block}
+.unl-res.ok{background:#3dffa010;color:var(--a3);border:1px solid #3dffa025}
+.unl-res.err{background:#ff4a4a10;color:var(--danger);border:1px solid #ff4a4a25}
+.unl-res.info{background:#3dcfff10;color:var(--a5);border:1px solid #3dcfff25}
+/* Wake button */
+.wake-btn{width:100%;height:44px;border-radius:12px;margin-bottom:10px;
+  background:var(--s2);border:1px solid var(--a5);color:var(--a5);
+  font-size:13px;font-weight:700;font-family:'Inter',sans-serif;
+  cursor:pointer;transition:transform .1s,background .12s;touch-action:manipulation}
+.wake-btn:active{transform:scale(.96);background:#3dcfff15}
+/* Permission tip */
+.perm-tip{background:#ffa83d0c;border:1px solid #ffa83d30;border-radius:11px;
+  padding:11px 13px;font-size:11px;color:var(--a4);line-height:1.6;margin-bottom:11px}
+.perm-tip strong{display:block;margin-bottom:3px;font-size:10px;letter-spacing:1px;text-transform:uppercase}
+
+/* ═══════════════ BLUETOOTH ══════════════════════════════ */
+.bt-dev{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--s2);border:1px solid var(--brd);border-radius:12px;margin-bottom:7px}
+.bt-ico{font-size:24px;flex-shrink:0;width:36px;text-align:center}
+.bt-info{flex:1;min-width:0}
+.bt-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px}
+.bt-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;flex-shrink:0}
+.bt-badge.on{background:#3dffa015;color:var(--a3);border:1px solid #3dffa030}
+.bt-badge.off{background:#ff4a4a10;color:var(--danger);border:1px solid #ff4a4a25}
+.bt-btn{padding:5px 10px;border-radius:8px;font-size:10.5px;font-weight:700;
+  font-family:'Inter',sans-serif;cursor:pointer;touch-action:manipulation;
+  transition:transform .1s;border:1px solid var(--brd);background:var(--s1);color:var(--txt)}
+.bt-btn:active{transform:scale(.9)}
+.bt-btn.connect{background:var(--a3);border-color:var(--a3);color:#111}
+.bt-btn.disconnect{background:var(--danger);border-color:var(--danger);color:#fff}
+.bt-blueutil-note{background:#ffa83d0c;border:1px solid #ffa83d30;border-radius:10px;
+  padding:10px 12px;font-size:10.5px;color:var(--a4);line-height:1.6;
+  margin-bottom:9px;display:none;font-family:'DM Mono',monospace}
+.bt-blueutil-note.show{display:block}
+.bt-refresh{width:100%;height:36px;border-radius:10px;font-size:11px;font-weight:600;
+  background:transparent;border:1px solid var(--brd);color:var(--muted);
+  cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:8px;transition:all .14s}
+.bt-refresh:active{transform:scale(.96)}
+
+/* ═══════════════ SYSTEM ═════════════════════════════════ */
+.sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:11px}
+.btn-sys{height:50px;border-radius:12px;background:var(--card);
+  border:1px solid var(--brd);color:var(--txt);
+  font-size:11px;font-weight:600;display:flex;align-items:center;
+  justify-content:center;gap:6px;cursor:pointer;
+  touch-action:manipulation;transition:transform .1s}
+.btn-sys:active{transform:scale(.9)}
+.btn-sys .i{font-size:17px}
+.btn-sys.span2{grid-column:span 2}
+
+/* ═══════════════ TOOLS ══════════════════════════════════ */
+.sout{margin-top:8px;padding:10px;background:var(--s1);border-radius:10px;
+  font-family:'DM Mono',monospace;font-size:10.5px;color:var(--a3);
+  white-space:pre-wrap;word-break:break-all;line-height:1.6;display:none}
+.sout.show{display:block}
+.secinfo{background:var(--s2);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;margin-bottom:9px}
+.secrow{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd)}
+.secrow:last-child{border:none}
+.seck{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;
+  letter-spacing:1px;flex-shrink:0;width:72px}
+.secv{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--a5);word-break:break-all;line-height:1.5}
+.secv.ok{color:var(--a3)}
+
+/* ═══════════════ SCREENSHOT ════════════════════════════ */
+.ss-img{width:100%;border-radius:10px;display:block;margin-top:9px;
+  object-fit:contain;max-height:280px;background:var(--s2);
+  border:1px solid var(--brd);cursor:zoom-in}
+.ss-img.zoomed{max-height:none;cursor:zoom-out;border-radius:6px}
+.ss-ts{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);
+  text-align:right;margin-top:4px}
+/* ═══════════════ CLIPBOARD ═════════════════════════════ */
+.clip-out{width:100%;min-height:70px;margin-top:8px;background:var(--s1);
+  border:1px solid var(--brd);border-radius:10px;padding:9px 12px;
+  color:var(--txt);font-family:'DM Mono',monospace;font-size:11.5px;
+  resize:vertical;line-height:1.5;outline:none;transition:border-color .2s}
+.clip-out:focus{border-color:var(--a1)}
+/* ═══════════════ TOAST ══════════════════════════════════ */
+.toast{position:fixed;bottom:calc(var(--sb)+16px);left:50%;
+  transform:translateX(-50%) translateY(12px);
+  padding:8px 18px;border-radius:100px;font-size:12px;font-weight:700;
+  white-space:nowrap;opacity:0;transition:opacity .2s,transform .2s;
+  z-index:999;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--a3);color:#111}
+.toast.err{background:var(--danger);color:#fff}
+.toast.info{background:#fff;color:#111}
+/* spinner */
+.spin{display:inline-block;width:11px;height:11px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.25);border-top-color:#fff;
+  animation:_sp .5s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes _sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ LOGIN SCREEN ══════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="lg-logo">🍎</div>
+  <div class="lg-brand">Murari Systems</div>
+  <div class="lg-title">Murari MacControl <sup style="font-size:12px;font-weight:700;color:var(--a4);-webkit-text-fill-color:var(--a4);vertical-align:super">Beta</sup></div>
+  <div class="lg-sub" id="lg-sub">Enter your PIN to securely connect to your Mac</div>
+
+  <div class="pin-dots" id="pin-dots">
+    <!-- dots injected by JS based on actual PIN length -->
+  </div>
+
+  <div class="lg-setup-label" id="lg-setup-lbl">Choose a PIN (4–12 digits)</div>
+  <div class="lg-fp" id="lg-fp"></div>
+
+  <div class="numpad" id="numpad">
+    <button class="np-btn" onclick="npTap(1)">1<span class="np-letters"></span></button>
+    <button class="np-btn" onclick="npTap(2)">2<span class="np-letters">ABC</span></button>
+    <button class="np-btn" onclick="npTap(3)">3<span class="np-letters">DEF</span></button>
+    <button class="np-btn" onclick="npTap(4)">4<span class="np-letters">GHI</span></button>
+    <button class="np-btn" onclick="npTap(5)">5<span class="np-letters">JKL</span></button>
+    <button class="np-btn" onclick="npTap(6)">6<span class="np-letters">MNO</span></button>
+    <button class="np-btn" onclick="npTap(7)">7<span class="np-letters">PQRS</span></button>
+    <button class="np-btn" onclick="npTap(8)">8<span class="np-letters">TUV</span></button>
+    <button class="np-btn" onclick="npTap(9)">9<span class="np-letters">WXYZ</span></button>
+    <button class="np-btn np-del" onclick="npDel()">⌫</button>
+    <button class="np-btn" onclick="npTap(0)">0</button>
+    <button class="np-btn np-go" onclick="submitPIN()">✓</button>
+  </div>
+  <div class="lg-err" id="lg-err"></div>
+</div>
+
+<!-- ═══════════ MAIN APP ══════════════════════════════════════════════════════ -->
+<div id="app" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+
+  <!-- Status bar -->
+  <div id="sbar">
+    <div class="sb-brand">
+      <span class="sb-brand-name">Murari MacControl</span>
+      <span class="sb-brand-beta">Beta</span>
+    </div>
+    <div class="sbseg">
+      <div class="sigbars">
+        <div class="sigbar" id="bar1"></div><div class="sigbar" id="bar2"></div>
+        <div class="sigbar" id="bar3"></div><div class="sigbar" id="bar4"></div>
+      </div>
+      <span class="sbtxt" id="sb-ping">…</span>
+    </div>
+    <div class="sbseg">
+      <div class="battbody"><div class="battfill" id="bfill" style="width:50%"></div></div>
+      <span class="sbtxt" id="sb-batt">…</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-page="dashboard">⌘ Dashboard</div>
+    <div class="tab" data-page="media">🎵 Media</div>
+    <div class="tab" data-page="apps">📱 Apps</div>
+    <div class="tab" data-page="safari">🌐 Safari</div>
+    <div class="tab" data-page="terminal">⌨️ Terminal</div>
+    <div class="tab" data-page="unlock">🔓 Unlock</div>
+    <div class="tab" data-page="bluetooth">🔵 Bluetooth</div>
+    <div class="tab" data-page="system">🖥️ System</div>
+    <div class="tab" data-page="tools">🔧 Tools</div>
+  </div>
+
+  <div class="pane">
+
+    <!-- ── DASHBOARD ──────────────────────────── -->
+    <div class="page active" id="page-dashboard">
+
+      <!-- Hero: time + battery -->
+      <div class="dash-hero">
+        <div class="dash-hero-top">
+          <div>
+            <div class="dash-time" id="dash-time">--:--</div>
+            <div class="dash-date" id="dash-date">Loading…</div>
+          </div>
+          <div class="dash-batt-big">
+            <div class="dash-batt-pct" id="dash-batt-pct">--</div>
+            <div class="dash-batt-lbl" id="dash-batt-lbl">BATTERY</div>
+          </div>
+        </div>
+        <div class="dash-stats">
+          <div class="dash-stat">
+            <div class="dash-stat-val" id="dash-vol">--</div>
+            <div class="dash-stat-lbl">Volume</div>
+          </div>
+          <div class="dash-stat">
+            <div class="dash-stat-val" id="dash-ping">--</div>
+            <div class="dash-stat-lbl">Ping</div>
+          </div>
+          <div class="dash-stat">
+            <div class="dash-stat-val" id="dash-running-ct">--</div>
+            <div class="dash-stat-lbl">Running</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spotify mini -->
+      <div class="dash-sp" id="dash-sp">
+        <div class="dash-sp-art-ph" id="dash-sp-ph">🎵</div>
+        <img class="dash-sp-art" id="dash-sp-art" style="display:none" alt="">
+        <div class="dash-sp-info">
+          <div class="dash-sp-track" id="dash-sp-track">Nothing playing</div>
+          <div class="dash-sp-artist" id="dash-sp-artist">Open Spotify to play music</div>
+        </div>
+        <div class="dash-sp-controls">
+          <div class="dash-sp-btn" onclick="ctrl('prev_track')">⏮</div>
+          <div class="dash-sp-btn" id="dash-play-btn" onclick="ctrl('play_pause')">▶</div>
+          <div class="dash-sp-btn" onclick="ctrl('next_track')">⏭</div>
+        </div>
+      </div>
+
+      <!-- Running apps -->
+      <div class="card" style="margin-bottom:11px">
+        <div class="dash-section-hdr">
+          <div class="clbl">Running Now</div>
+          <div class="dash-see-all" onclick="switchTab('apps')">See All →</div>
+        </div>
+        <div class="dash-running" id="dash-running-row">
+          <div style="color:var(--muted);font-size:11px;padding:8px 0">
+            <span class="spin" style="border-top-color:var(--muted)"></span> Loading…
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="clbl" style="margin-bottom:7px">Quick Actions</div>
+      <div class="dash-quick">
+        <div class="dash-qa a1" onclick="switchTab('media')">
+          <span class="dqa-ico">🎵</span>
+          <div class="dqa-info"><div class="dqa-name">Media</div><div class="dqa-sub">Play, volume, brightness</div></div>
+        </div>
+        <div class="dash-qa a2" onclick="switchTab('unlock')">
+          <span class="dqa-ico">🔓</span>
+          <div class="dqa-info"><div class="dqa-name">Unlock</div><div class="dqa-sub">Wake & unlock Mac</div></div>
+        </div>
+        <div class="dash-qa a3" onclick="ctrl('screenshot');toast('✓ Screenshot saved to Desktop')">
+          <span class="dqa-ico">📸</span>
+          <div class="dqa-info"><div class="dqa-name">Screenshot</div><div class="dqa-sub">Save to Desktop</div></div>
+        </div>
+        <div class="dash-qa a4" onclick="switchTab('system')">
+          <span class="dqa-ico">🖥️</span>
+          <div class="dqa-info"><div class="dqa-name">System</div><div class="dqa-sub">Controls & tools</div></div>
+        </div>
+        <div class="dash-qa" onclick="ctrl('lock')">
+          <span class="dqa-ico">🔒</span>
+          <div class="dqa-info"><div class="dqa-name">Lock Screen</div><div class="dqa-sub">Lock display now</div></div>
+        </div>
+        <div class="dash-qa" onclick="toggleDarkMode()">
+          <span class="dqa-ico" id="dash-dm-ico">🌙</span>
+          <div class="dqa-info"><div class="dqa-name" id="dash-dm-lbl">Dark Mode</div><div class="dqa-sub">Toggle appearance</div></div>
+        </div>
+        <div class="dash-qa" onclick="ctrl('mute')">
+          <span class="dqa-ico">🔇</span>
+          <div class="dqa-info"><div class="dqa-name">Mute</div><div class="dqa-sub">Silence output</div></div>
+        </div>
+        <div class="dash-qa" onclick="confirmSleep()">
+          <span class="dqa-ico">😴</span>
+          <div class="dqa-info"><div class="dqa-name">Sleep</div><div class="dqa-sub">Put Mac to sleep</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MEDIA ──────────────────────────────── -->
+    <div class="page" id="page-media">
+
+      <!-- Now Playing card with album art -->
+      <div id="np-card">
+        <div class="np-art-bg" id="np-bg"></div>
+        <div class="np-inner">
+          <img class="np-art" id="np-art" style="display:none" alt="Album art">
+          <div class="np-art-placeholder" id="np-placeholder">🎵</div>
+          <div class="np-info">
+            <div class="np-track" id="np-track">Nothing playing</div>
+            <div class="np-artist" id="np-artist"></div>
+            <div class="np-album" id="np-album"></div>
+            <div class="np-state paused" id="np-state"><span class="np-state-dot"></span>PAUSED</div>
+          </div>
+        </div>
+        <div class="np-front" id="np-front">Active: …</div>
+      </div>
+
+      <div class="media-row">
+        <button class="btn btn-med" onclick="ctrl('prev_track')">⏮</button>
+        <button class="btn btn-med btn-play-main" id="btn-play" onclick="ctrl('play_pause')">▶</button>
+        <button class="btn btn-med" onclick="ctrl('next_track')">⏭</button>
+      </div>
+
+      <div class="card">
+        <div class="vol-hdr"><span class="clbl" style="margin:0">Volume</span><span class="vol-val" id="vol-val">—</span></div>
+        <input type="range" id="vol-slider" min="0" max="100" value="50"
+          oninput="document.getElementById('vol-val').textContent=this.value+'%'"
+          onchange="setVol(this.value)">
+        <div class="row" style="margin-top:9px;gap:5px">
+          <button class="btn btn-half" onclick="ctrl('mute')">🔇 Mute</button>
+          <button class="btn btn-half" onclick="ctrl('unmute')">🔊 Unmute</button>
+          <button class="btn btn-half" onclick="ctrl('bright_down')">🔅</button>
+          <button class="btn btn-half" onclick="ctrl('bright_up')">🔆</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="clbl">Type on Mac</div>
+        <div class="row">
+          <input type="text" class="inp" id="type-inp" placeholder="Keystroke to frontmost app…">
+          <button class="btn btn-ico a1" onclick="sendText()" style="flex-shrink:0">↵</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── APPS ───────────────────────────────── -->
+    <div class="page" id="page-apps">
+      <!-- App action menu (hidden by default) -->
+      <div class="app-menu-overlay" id="app-menu" style="display:none" onclick="closeAppMenu(event)">
+        <div style="width:100%;max-width:400px">
+          <div class="app-menu">
+            <div class="app-menu-header">
+              <div class="app-menu-icon" id="amenu-icon"><span id="amenu-ico-emoji">📱</span></div>
+              <div>
+                <div class="app-menu-name" id="amenu-name">App</div>
+                <div class="app-menu-status" id="amenu-status">Not running</div>
+              </div>
+            </div>
+            <div class="app-menu-actions">
+              <button class="app-menu-btn" id="amenu-open" onclick="menuAction('open')">
+                <span class="amb-ico">▶</span> Open / Switch to App
+              </button>
+              <button class="app-menu-btn warn-btn" id="amenu-quit" onclick="menuAction('quit')" style="display:none">
+                <span class="amb-ico">⏹</span> Quit App
+              </button>
+              <button class="app-menu-btn danger" id="amenu-fq" onclick="menuAction('force_quit')" style="display:none">
+                <span class="amb-ico">⚡</span> Force Quit
+              </button>
+            </div>
+          </div>
+          <button class="app-menu-cancel" onclick="closeAppMenu()">Cancel</button>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <span class="search-ico">🔍</span>
+        <input type="search" class="search-inp" id="app-search"
+          placeholder="Search all apps…" oninput="filterApps(this.value)">
+      </div>
+      <div id="running-sec">
+        <div class="sec-lbl">Running — tap to manage</div>
+        <div class="app-grid" id="running-grid">
+          <div class="ldrow"><span class="spin" style="border-top-color:var(--muted)"></span>Loading…</div>
+        </div>
+      </div>
+      <div id="installed-sec">
+        <div class="sec-lbl">All Installed Apps</div>
+        <div class="app-grid" id="installed-grid">
+          <div class="ldrow"><span class="spin" style="border-top-color:var(--muted)"></span>Scanning…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SAFARI ─────────────────────────────── -->
+    <div class="page" id="page-safari">
+      <div class="sf-bar">
+        <div class="sf-title" id="sf-title">Safari not running</div>
+        <div class="sf-url" id="sf-url">—</div>
+      </div>
+      <div class="sf-btns">
+        <button class="sf-btn" onclick="sfAct('back')">◀</button>
+        <button class="sf-btn" onclick="sfAct('forward')">▶</button>
+        <button class="sf-btn" onclick="sfAct('reload')">↻</button>
+        <button class="sf-btn" onclick="sfAct('focus')">🌐</button>
+        <button class="sf-btn" onclick="sfAct('scroll_top')">⬆</button>
+        <button class="sf-btn" onclick="sfAct('scroll_bot')">⬇</button>
+        <button class="sf-btn" onclick="sfAct('new_tab')">＋</button>
+        <button class="sf-btn" onclick="sfAct('close_tab')">✕</button>
+      </div>
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">Navigate</div>
+        <div class="row">
+          <input type="url" class="inp f5" id="sf-nav" placeholder="url.com or https://…">
+          <button class="btn btn-ico a5" onclick="sfNav()" style="flex-shrink:0">→</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">New Tab</div>
+        <div class="row">
+          <input type="url" class="inp f5" id="sf-tab" placeholder="url.com or https://…">
+          <button class="btn btn-ico a4" onclick="sfTab()" style="flex-shrink:0">⊞</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="clbl">Execute JavaScript</div>
+        <textarea class="inp f3" id="sf-js" placeholder="document.title&#10;window.scrollTo(0,500)"></textarea>
+        <div class="sout" id="sf-js-out"></div>
+        <button class="btn btn-full a3" style="margin-top:7px" onclick="sfRunJS()">▶ Run JS</button>
+      </div>
+    </div>
+
+    <!-- ── TERMINAL ───────────────────────────── -->
+    <div class="page" id="page-terminal">
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">Shell Command</div>
+        <div class="row">
+          <input type="text" class="inp f3" id="term-inp"
+            placeholder="ls ~/Desktop" autocorrect="off" autocapitalize="none" spellcheck="false">
+          <button class="btn btn-ico a3" onclick="termRun()" style="flex-shrink:0">▶</button>
+        </div>
+        <div class="mode-row">
+          <button class="mode-btn on" id="mode-s" onclick="setMode('silent')">Silent (output here)</button>
+          <button class="mode-btn" id="mode-v" onclick="setMode('visible')">Open in Terminal.app</button>
+        </div>
+      </div>
+      <div class="term-out show" id="term-out">$ _</div>
+      <div class="card" style="margin-top:9px">
+        <div class="clbl">Quick Commands</div>
+        <div class="qgrid">
+          <button class="qbtn" onclick="qcmd('ls ~/Desktop')">📁 ls Desktop</button>
+          <button class="qbtn" onclick="qcmd('df -h')">💾 Disk usage</button>
+          <button class="qbtn" onclick="qcmd('top -l 1 -n 5 -stats pid,command,cpu')">📊 CPU top</button>
+          <button class="qbtn" onclick="qcmd('ifconfig | grep inet')">🌐 IP info</button>
+          <button class="qbtn" onclick="qcmd('ps aux|sort -rk3|head -10')">🔥 Mem hogs</button>
+          <button class="qbtn" onclick="qcmd('uptime')">⏱ Uptime</button>
+          <button class="qbtn" onclick="qcmd('ls ~/Downloads|tail -10')">📥 Downloads</button>
+          <button class="qbtn" onclick="qcmd('sw_vers')">🍎 macOS ver</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:9px">
+        <div class="clbl">Read Terminal Window</div>
+        <button class="btn btn-full" onclick="readTerm()" style="height:36px;font-size:11px">📋 Get Terminal Contents</button>
+        <div class="term-out" id="term-read"></div>
+      </div>
+    </div>
+
+    <!-- ── UNLOCK ─────────────────────────────── -->
+    <div class="page" id="page-unlock">
+
+      <div class="perm-tip">
+        <strong>⚙ Two Permissions Required for Unlock</strong>
+        <strong style="display:block;margin-top:6px;font-size:9px;letter-spacing:1px">① Accessibility</strong>
+        System Settings → Privacy &amp; Security → Accessibility → add Terminal (or iTerm2)<br><br>
+        <strong style="display:block;font-size:9px;letter-spacing:1px">② Automation → System Events</strong>
+        System Settings → Privacy &amp; Security → Automation → Terminal → enable System Events<br><br>
+        After granting both, <strong>restart the server</strong>. Note: unlock works best for display-sleep, not full logout screens.
+      </div>
+
+      <div class="card">
+        <div style="font-size:42px;text-align:center;padding:6px 0 2px">🔐</div>
+        <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:13px;line-height:1.5">
+          Wake and unlock your Mac remotely.<br>Requires Accessibility permission (see above).
+        </div>
+
+        <!-- Wake Only -->
+        <button class="wake-btn" onclick="doWake()" id="wake-btn">
+          ☀️ Wake Display Only
+        </button>
+
+        <!-- Password + Unlock -->
+        <div class="pw-wrap">
+          <input type="password" class="pw-inp" id="pw-inp"
+            placeholder="Mac login password"
+            autocomplete="current-password"
+            onkeydown="if(event.key==='Enter') doUnlock()">
+          <button class="pw-eye" onclick="togglePw()" id="pw-eye">👁️</button>
+        </div>
+        <button class="unl-btn" onclick="doUnlock()" id="unl-btn">🔓 Wake &amp; Unlock</button>
+        <div class="unl-res" id="unl-res"></div>
+
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">
+          <div class="clbl">Quick</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+            <button class="btn-sys warn" onclick="ctrl('lock')" style="border-radius:11px"><span class="i">🔒</span>Lock</button>
+            <button class="btn-sys warn" onclick="ctrl('sleep')" style="border-radius:11px"><span class="i">😴</span>Sleep</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BLUETOOTH ──────────────────────────── -->
+    <div class="page" id="page-bluetooth">
+      <div class="bt-blueutil-note" id="bt-note">
+        ⚠ blueutil not installed. Connect/disconnect won't work.<br>
+        Fix: open Terminal and run <strong>brew install blueutil</strong>
+      </div>
+      <button class="bt-refresh" onclick="loadBluetooth()">↻ Refresh Bluetooth</button>
+
+      <div class="sec-lbl">Connected</div>
+      <div id="bt-conn-list"><div style="color:var(--muted);font-size:11.5px;padding:8px 2px">Loading…</div></div>
+
+      <div class="sec-lbl">Paired (Not Connected)</div>
+      <div id="bt-avail-list"><div style="color:var(--muted);font-size:11.5px;padding:8px 2px">Loading…</div></div>
+    </div>
+
+    <!-- ── SYSTEM ─────────────────────────────── -->
+    <div class="page" id="page-system">
+      <div class="sys-grid">
+        <button class="btn-sys" onclick="ctrl('screenshot')"><span class="i">📸</span>Screenshot</button>
+        <button class="btn-sys" onclick="ctrl('show_desktop')"><span class="i">🖥️</span>Show Desktop</button>
+        <button class="btn-sys" onclick="ctrl('mission_control')"><span class="i">🗂️</span>Mission Ctrl</button>
+        <button class="btn-sys" onclick="ctrl('launchpad')"><span class="i">🚀</span>Launchpad</button>
+        <button class="btn-sys" id="btn-darkmode" onclick="toggleDarkMode()"><span class="i">🌙</span>Dark Mode</button>
+        <button class="btn-sys warn" onclick="ctrl('empty_trash')"><span class="i">🗑️</span>Empty Trash</button>
+        <button class="btn-sys warn" onclick="ctrl('force_quit_front')"><span class="i">❌</span>Force Quit</button>
+        <button class="btn-sys danger span2" onclick="confirmSleep()"><span class="i">😴</span>Sleep Mac</button>
+      </div>
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">Open URL on Mac</div>
+        <div class="row">
+          <input type="url" class="inp" id="url-inp" placeholder="https://…">
+          <button class="btn btn-ico a2" onclick="sendUrl()" style="flex-shrink:0">→</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="clbl" style="margin:0">Screenshot Viewer</div>
+          <span class="ss-ts" id="ss-ts"></span>
+        </div>
+        <button class="btn btn-full" style="height:40px;font-size:12px" id="ss-btn" onclick="takeScreenshot()">📸 Capture Mac Screen</button>
+        <img class="ss-img" id="ss-img" style="display:none" alt="Mac screenshot" onclick="this.classList.toggle('zoomed')">
+      </div>
+    </div>
+
+    <!-- ── TOOLS ──────────────────────────────── -->
+    <div class="page" id="page-tools">
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">Clipboard</div>
+        <textarea class="clip-out" id="clip-ta" placeholder="Mac clipboard contents appear here…" spellcheck="false"></textarea>
+        <div class="row" style="margin-top:7px;gap:6px">
+          <button class="btn btn-half a5" onclick="clipRead()">📋 Read Mac</button>
+          <button class="btn btn-half a1" onclick="clipWrite()">⬆ Push to Mac</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">Send Notification to Mac</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <input type="text" class="inp f4" id="notif-title" placeholder="Title" style="font-size:13px">
+          <input type="text" class="inp" id="notif-sub" placeholder="Subtitle (optional)" style="font-size:12px">
+          <input type="text" class="inp" id="notif-msg" placeholder="Message" style="font-size:12px">
+        </div>
+        <button class="btn btn-full a4" style="margin-top:7px" onclick="sendNotify()">🔔 Send Notification</button>
+      </div>
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">Custom AppleScript</div>
+        <textarea class="inp f3" id="script-inp"
+          placeholder='tell application "Finder" to open home'></textarea>
+        <div class="sout" id="sout"></div>
+        <button class="btn btn-full a3" style="margin-top:7px" onclick="runScript()">▶ Run AppleScript</button>
+      </div>
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">Shortcuts</div>
+        <div class="qgrid">
+          <button class="qbtn" onclick="ps('tell application \\'System Events\\' to keystroke tab using command down')">⇥ Cmd+Tab</button>
+          <button class="qbtn" onclick="ps('tell application \\'System Events\\' to keystroke \\'c\\' using command down')">📋 Copy</button>
+          <button class="qbtn" onclick="ps('tell application \\'System Events\\' to keystroke \\'v\\' using command down')">📌 Paste</button>
+          <button class="qbtn" onclick="ps('tell application \\'System Events\\' to keystroke \\'z\\' using command down')">↩ Undo</button>
+          <button class="qbtn" onclick="ps('tell application \\'System Events\\' to keystroke \\'a\\' using command down')">⊞ Select All</button>
+          <button class="qbtn" onclick="ps('tell application \\'Finder\\' to open home')">📁 Open Home</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:9px">
+        <div class="clbl">Security</div>
+        <div class="secinfo">
+          <div class="secrow"><span class="seck">Protocol</span><span class="secv ok" id="si-proto">HTTPS</span></div>
+          <div class="secrow"><span class="seck">Auth</span><span class="secv ok">PBKDF2-SHA256 · 200k</span></div>
+          <div class="secrow"><span class="seck">Session</span><span class="secv ok">64-byte token · 24h</span></div>
+          <div class="secrow"><span class="seck">Cert SHA256</span><span class="secv" id="si-fp">…</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px">
+          <button class="btn btn-full" style="height:36px;font-size:11px" onclick="window.open('/cert.pem')">📥 Download Cert</button>
+          <button class="btn btn-full danger" style="height:36px;font-size:11px" onclick="doLogout()">🚪 Log Out</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="clbl">Change PIN</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <input type="password" class="inp f2" id="cp-old" placeholder="Current PIN" style="font-size:14px;letter-spacing:3px">
+          <input type="password" class="inp f2" id="cp-new" placeholder="New PIN (4-12 digits)" style="font-size:14px;letter-spacing:3px">
+          <button class="btn btn-full a2" onclick="changePIN()">Change PIN</button>
+        </div>
+        <div class="unl-res" id="cp-res"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────
+const LS = 'msmr_token';
+let token = localStorage.getItem(LS) || '';
+let termMode = 'silent';
+let allInstalled = [], allRunning = [], appsLoaded = false;
+let btLoaded = false;
+let lastArtUrl = '';
+let pinLength = 6; // default, overridden by server
+
+// icon cache: name -> base64 data URL or emoji fallback
+const iconCache = {};
+
+// ─── Login / Setup ────────────────────────────────────
+let pinBuf = '', setupMode = false, setupStep = 0, setupFirst = '';
+
+async function initAuth() {
+  let d;
+  try {
+    const r = await fetch('/api/auth/status');
+    d = await r.json();
+  } catch(e) {
+    lgErr('Cannot reach Mac server. Is it running?');
+    return;
+  }
+
+// Set pin length from server (0 means unknown — old config without pin_length)
+  pinLength = d.pin_length || 0;
+  buildDots(pinLength);
+
+  // Populate security info
+  document.getElementById('si-fp').textContent = d.fingerprint || '—';
+  document.getElementById('si-proto').textContent =
+    location.protocol === 'https:' ? 'HTTPS / TLS 1.2+' : 'HTTP (no TLS)';
+
+  if (d.setup_required) {
+    setupMode = true; setupStep = 0;
+    // Fresh setup: no known PIN length yet — show flexible dots
+    pinLength = 0;
+    buildDots(0);
+    document.getElementById('lg-setup-lbl').style.display = 'block';
+    document.getElementById('lg-sub').textContent = 'Create a PIN to protect your Mac.';
+    if (d.fingerprint) {
+      const fp = document.getElementById('lg-fp');
+      fp.textContent = '🔒 Cert SHA-256:\n' + d.fingerprint;
+      fp.style.display = 'block';
+    }
+    return;
+  }
+
+  // Try existing token
+  if (token && await checkToken()) {
+    showApp();
+    return;
+  }
+  // Show numpad
+}
+
+function buildDots(n) {
+  // n=0 means unknown — we'll show dots dynamically as the user types
+  const container = document.getElementById('pin-dots');
+  container.innerHTML = '';
+  const slots = n > 0 ? n : 12;
+  for (let i = 0; i < slots; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'pin-dot';
+    dot.id = 'd' + i;
+    // Unknown length: hide all initially; they reveal as typed
+    if (n === 0) dot.style.display = 'none';
+    container.appendChild(dot);
+  }
+}
+
+async function checkToken() {
+  if (!token) return false;
+  try {
+    const r = await fetch('/api/ping', { headers: {'X-Session-Token': token} });
+    return r.ok;
+  } catch { return false; }
+}
+
+function npTap(n) {
+  haptic();
+  const cap = pinLength > 0 ? pinLength : 12;
+  if (pinBuf.length >= cap) return;
+  pinBuf += String(n);
+  updateDots();
+  // Auto-submit only when PIN length is exactly known and buffer is full
+  if (!setupMode && pinLength > 0 && pinBuf.length === pinLength) {
+    setTimeout(submitPIN, 160);
+  }
+}
+function npDel() { haptic(); pinBuf = pinBuf.slice(0,-1); updateDots(); }
+
+function updateDots() {
+  if (pinLength > 0) {
+    // Known length: show exactly pinLength placeholder dots, fill the typed ones
+    for (let i = 0; i < pinLength; i++) {
+      const el = document.getElementById('d' + i);
+      if (el) { el.style.display = ''; el.classList.toggle('filled', i < pinBuf.length); }
+    }
+  } else {
+    // Unknown length: show filled dots for typed digits + one empty 'next' slot
+    for (let i = 0; i < 12; i++) {
+      const el = document.getElementById('d' + i);
+      if (!el) continue;
+      if (i < pinBuf.length) {
+        el.style.display = ''; el.classList.add('filled');
+      } else if (i === pinBuf.length && pinBuf.length < 12) {
+        el.style.display = ''; el.classList.remove('filled');
+      } else {
+        el.style.display = 'none'; el.classList.remove('filled');
+      }
+    }
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('login-screen').style.display === 'none') return;
+  if (e.key >= '0' && e.key <= '9') npTap(parseInt(e.key));
+  else if (e.key === 'Backspace') npDel();
+  else if (e.key === 'Enter') submitPIN();
+});
+
+async function submitPIN() {
+  if (pinBuf.length < 4) { lgErr('PIN needs at least 4 digits'); return; }
+  lgErr('');
+  if (setupMode) { await handleSetup(); }
+  else { await handleLogin(); }
+}
+
+async function handleLogin() {
+  const pin = pinBuf; pinBuf = ''; updateDots();
+  try {
+    const r = await fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({pin})
+    });
+    const d = await r.json();
+    if (d.ok) { token = d.token; localStorage.setItem(LS, token); showApp(); }
+    else {
+      lgErr(d.error || 'Wrong PIN');
+      shakeDots();
+    }
+  } catch { lgErr('Connection error'); }
+}
+
+async function handleSetup() {
+  if (setupStep === 0) {
+    setupFirst = pinBuf;
+    pinLength = pinBuf.length;   // lock dot count to chosen PIN length for confirmation
+    buildDots(pinLength);
+    pinBuf = ''; updateDots();
+    setupStep++;
+    document.getElementById('lg-setup-lbl').textContent = 'Confirm your PIN';
+    return;
+  }
+  if (pinBuf !== setupFirst) {
+    lgErr("PINs don't match — start over");
+    pinBuf = ''; setupFirst = ''; setupStep = 0;
+    pinLength = 0;               // back to unknown length for fresh entry
+    buildDots(0); updateDots();
+    document.getElementById('lg-setup-lbl').textContent = 'Choose a PIN (4–12 digits)';
+    return;
+  }
+  const pin = pinBuf; pinBuf = ''; updateDots();
+  try {
+    const r = await fetch('/api/auth/setup', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({pin})
+    });
+    const d = await r.json();
+    if (d.ok) { token = d.token; localStorage.setItem(LS, token); showApp(); }
+    else lgErr(d.error || 'Setup failed');
+  } catch { lgErr('Connection error'); }
+}
+
+function shakeDots() {
+  const el = document.getElementById('pin-dots');
+  el.style.transition='none'; el.style.transform='translateX(8px)';
+  setTimeout(()=>{el.style.transition='transform .1s';el.style.transform='translateX(-8px)'},60);
+  setTimeout(()=>{el.style.transform=''},160);
+}
+function lgErr(m) { document.getElementById('lg-err').textContent = m; }
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  const el = document.getElementById('app');
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  el.style.flex = '1';
+  el.style.overflow = 'hidden';
+  startApp();
+}
+
+// ─── API ──────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: {'Content-Type':'application/json','X-Session-Token': token}
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  if (r.status === 401) {
+    localStorage.removeItem(LS); token = '';
+    location.reload(); throw new Error('Unauthorized');
+  }
+  return r.json();
+}
+
+// ─── Status bar ───────────────────────────────────────
+async function measurePing() {
+  const t0 = performance.now();
+  try {
+    await fetch('/api/ping');
+    updateSignal(Math.round(performance.now()-t0));
+  } catch { updateSignal(null); }
+}
+
+function updateSignal(ms) {
+  const bars = [1,2,3,4].map(i => document.getElementById('bar'+i));
+  const ping = document.getElementById('sb-ping');
+  const dp = document.getElementById('dash-ping');
+  if (ms === null) {
+    bars.forEach(b => b.className='sigbar');
+    ping.textContent='offline'; ping.className='sbtxt bad';
+    if (dp) dp.textContent = '--';
+    return;
+  }
+  const lv = ms<30?4:ms<80?3:ms<150?2:1;
+  const cls = ms<30?'on':ms<150?'warn':'bad';
+  bars.forEach((b,i) => b.className='sigbar'+(i<lv?' '+cls:''));
+  ping.textContent=ms+'ms'; ping.className='sbtxt '+(ms<80?'ok':ms<150?'warn':'bad');
+  if (dp) dp.textContent = ms+'ms';
+}
+
+async function updateBattery() {
+  try {
+    const d = await api('GET','/api/battery');
+    const pct = d.percent;
+    const fill = document.getElementById('bfill');
+    const lbl  = document.getElementById('sb-batt');
+    if (pct===null){fill.style.width='100%';fill.className='battfill';lbl.textContent='⚡';return;}
+    fill.style.width=pct+'%';
+    fill.className='battfill'+(pct<=20?' low':pct<=40?' warn':'');
+    lbl.textContent=pct+'%'+(d.charging?'⚡':'');
+    lbl.className='sbtxt'+(pct<=20?' bad':pct<=40?' warn':' ok');
+    // Dashboard battery
+    const dbp = document.getElementById('dash-batt-pct');
+    if (dbp) {
+      dbp.textContent = pct+'%'+(d.charging?'⚡':'');
+      dbp.className = 'dash-batt-pct'+(pct<=20?' low':pct<=40?' warn':'');
+      document.getElementById('dash-batt-lbl').textContent = d.charging?'CHARGING':'BATTERY';
+    }
+  } catch {}
+}
+
+async function updateBTBadge() {
+  try {
+    const d = await api('GET','/api/bluetooth');
+    if (d.ok) {
+      const n=(d.connected||[]).length;
+      // update bluetooth tab badge in status if element exists
+      const el=document.getElementById('sb-bt');
+      if (el) { el.textContent=n+(n===1?' dev':' devs'); el.className='sbtxt'+(n>0?' ok':''); }
+    }
+  } catch {}
+}
+
+function switchTab(name) {
+  const el = document.querySelector(`.tab[data-page="${name}"]`);
+  if (el) {
+    el.click();
+    el.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
+  }
+}
+
+// ─── Start ────────────────────────────────────────────
+function startApp() {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('page-'+t.dataset.page).classList.add('active');
+      // Always scroll the clicked tab into view in the tab strip
+      t.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
+      if (t.dataset.page==='apps' && !appsLoaded) loadApps();
+      if (t.dataset.page==='safari') refreshSafari();
+      if (t.dataset.page==='bluetooth' && !btLoaded) loadBluetooth();
+      if (t.dataset.page==='system') refreshDarkMode();
+      if (t.dataset.page==='dashboard') refreshDashboard();
+    });
+  });
+  startClock();
+  refreshStatus();
+  refreshDashboard();
+  loadRunningApps();
+  setInterval(refreshStatus, 5000);
+  setInterval(loadRunningApps, 8000);
+  measurePing(); setInterval(measurePing, 3000);
+  updateBattery(); setInterval(updateBattery, 15000);
+  updateBTBadge(); setInterval(updateBTBadge, 20000);
+}
+
+// ─── Controls ─────────────────────────────────────────
+async function ctrl(action) {
+  haptic();
+  try {
+    const d = await api('GET',`/api/control?action=${action}`);
+    if (!d.ok) toast(d.error||'Error','err');
+    else { toast('✓ '+action.replace(/_/g,' ')); refreshStatus(); }
+  } catch(e) { if(e.message!=='Unauthorized') toast('Error','err'); }
+}
+
+async function setVol(v) { try { await api('GET',`/api/volume?level=${v}`); } catch {} }
+
+// ─── Status / Spotify art ─────────────────────────────
+async function refreshStatus() {
+  try {
+    const d = await api('GET','/api/status');
+    const sp = d.spotify || {};
+    // Track
+    document.getElementById('np-track').textContent  = sp.track  || 'Nothing playing';
+    document.getElementById('np-artist').textContent = sp.artist || '';
+    document.getElementById('np-album').textContent  = sp.album  || '';
+    document.getElementById('np-front').textContent  = 'Active: '+(d.front_app||'?');
+    // Play state
+    const playing = sp.state === 'playing';
+    document.getElementById('btn-play').textContent = playing ? '⏸' : '▶';
+    const stateEl = document.getElementById('np-state');
+    stateEl.className = 'np-state' + (playing ? '' : ' paused');
+    stateEl.innerHTML = `<span class="np-state-dot"></span>${playing ? 'PLAYING' : 'PAUSED'}`;
+    // Album art
+    if (sp.art && sp.art !== lastArtUrl) {
+      lastArtUrl = sp.art;
+      const img = document.getElementById('np-art');
+      const ph  = document.getElementById('np-placeholder');
+      img.onload = () => { img.style.display=''; ph.style.display='none'; };
+      img.src = sp.art;
+      document.getElementById('np-bg').style.backgroundImage = `url(${sp.art})`;
+    } else if (!sp.art && lastArtUrl) {
+      lastArtUrl = '';
+      document.getElementById('np-art').style.display='none';
+      document.getElementById('np-placeholder').style.display='';
+      document.getElementById('np-bg').style.backgroundImage='';
+    }
+    // Volume
+    const vol = parseInt(d.volume)||0;
+    document.getElementById('vol-val').textContent = vol+'%';
+    document.getElementById('vol-slider').value = vol;
+    // Dashboard vol stat
+    const dv = document.getElementById('dash-vol');
+    if (dv) dv.textContent = vol+'%';
+    // Dashboard Spotify mini
+    const dTrack = document.getElementById('dash-sp-track');
+    const dArtist = document.getElementById('dash-sp-artist');
+    const dPlayBtn = document.getElementById('dash-play-btn');
+    const dArt = document.getElementById('dash-sp-art');
+    const dPh = document.getElementById('dash-sp-ph');
+    if (dTrack) dTrack.textContent = sp.track || 'Nothing playing';
+    if (dArtist) dArtist.textContent = sp.artist || 'Open Spotify to play music';
+    if (dPlayBtn) dPlayBtn.textContent = playing ? '⏸' : '▶';
+    if (dArt && dPh) {
+      if (sp.art) { dArt.src = sp.art; dArt.style.display=''; dPh.style.display='none'; }
+      else { dArt.style.display='none'; dPh.style.display=''; }
+    }
+    // Safari
+    if (d.safari_title||d.safari_url) {
+      document.getElementById('sf-title').textContent = d.safari_title||'—';
+      document.getElementById('sf-url').textContent   = d.safari_url||'—';
+    }
+  } catch {}
+}
+
+// ─── Type / URL ───────────────────────────────────────
+async function sendText() {
+  const text = document.getElementById('type-inp').value.trim();
+  if (!text) return; haptic();
+  try {
+    const d = await api('POST','/api/type',{text});
+    if (!d.ok) toast(d.error,'err');
+    else { toast('✓ Sent'); document.getElementById('type-inp').value=''; }
+  } catch {}
+}
+document.getElementById('type-inp').addEventListener('keydown',e=>{if(e.key==='Enter')sendText();});
+
+async function sendUrl() {
+  let url = document.getElementById('url-inp').value.trim();
+  if (!url) return;
+  if (!url.startsWith('http')) url='https://'+url;
+  haptic();
+  try {
+    const d = await api('POST','/api/url',{url});
+    toast(d.ok?'✓ Opened':(d.error||'Error'), d.ok?'ok':'err');
+    if (d.ok) document.getElementById('url-inp').value='';
+  } catch {}
+}
+
+// ─── Clock ────────────────────────────────────────────
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const el = document.getElementById('dash-time');
+    if (el) el.textContent = h+':'+m;
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const de = document.getElementById('dash-date');
+    if (de) de.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+  }
+  tick();
+  setInterval(tick, 10000);
+}
+
+// ─── Dashboard ────────────────────────────────────────
+async function refreshDashboard() {
+  // stats updated via refreshStatus / updateBattery / loadRunningApps
+}
+
+// ─── App Icons ────────────────────────────────────────
+async function getAppIcon(name) {
+  if (iconCache[name]) return iconCache[name];
+  iconCache[name] = null; // mark pending so we don't double-fetch
+  try {
+    const d = await api('GET', `/api/apps/icon?name=${encodeURIComponent(name)}`);
+    if (d.ok && d.data) {
+      iconCache[name] = `data:${d.mime};base64,${d.data}`;
+      return iconCache[name];
+    }
+  } catch {}
+  return null;
+}
+
+function iconHtml(app, size=26, imgClass='', fallbackClass='ico') {
+  const cached = iconCache[app.name];
+  if (cached) {
+    return `<img class="${imgClass}" src="${cached}" alt="" style="width:${size}px;height:${size}px;border-radius:${Math.round(size*.26)}px;object-fit:cover">`;
+  }
+  return `<span class="${fallbackClass}" style="font-size:${size}px">${app.emoji||'📱'}</span>`;
+}
+
+// Lazy-load icons for a list of apps and refresh the grid element
+async function loadIconsFor(apps, refreshFn) {
+  const toFetch = apps.filter(a => !(a.name in iconCache));
+  if (!toFetch.length) return;
+  await Promise.allSettled(toFetch.map(a => getAppIcon(a.name)));
+  refreshFn();
+}
+
+// ─── Apps ─────────────────────────────────────────────
+
+// Immediate focus (running app tile tap)
+async function focusAppImmediate(name) {
+  haptic();
+  try {
+    const d = await api('POST','/api/apps/focus',{name});
+    toast(d.ok ? '✓ Switched to '+name : (d.error||'Error'), d.ok?'ok':'err');
+  } catch {}
+}
+
+// Immediate launch (not-running app tile tap)
+async function launchAppImmediate(path, name) {
+  haptic();
+  try {
+    const d = await api('POST','/api/apps/launch',{path, name});
+    toast(d.ok ? '✓ '+name : (d.error||'Error'), d.ok?'ok':'err');
+    if (d.ok) setTimeout(loadRunningApps, 2200);
+  } catch {}
+}
+
+let _menuApp = null;
+
+async function loadApps() {
+  appsLoaded = true;
+  try {
+    const d = await api('GET','/api/apps/running');
+    if (d.ok) { allRunning=d.apps; renderRunning(d.apps); loadIconsFor(d.apps, ()=>renderRunning(allRunning)); }
+  } catch {}
+  try {
+    const d = await api('GET','/api/apps/installed');
+    if (d.ok) { allInstalled=d.apps; renderInstalled(d.apps); loadIconsFor(d.apps.slice(0,40), ()=>renderInstalled(allInstalled)); }
+  } catch {}
+}
+
+async function loadRunningApps() {
+  try {
+    const d = await api('GET','/api/apps/running');
+    if (d.ok) {
+      allRunning = d.apps;
+      // update dashboard running row
+      renderDashRunning(d.apps);
+      const ct = document.getElementById('dash-running-ct');
+      if (ct) ct.textContent = d.apps.length;
+      // refresh apps page if visible
+      if (document.getElementById('page-apps').classList.contains('active')) {
+        renderRunning(d.apps);
+      }
+    }
+  } catch {}
+}
+
+function renderDashRunning(apps) {
+  const row = document.getElementById('dash-running-row');
+  if (!row) return;
+  if (!apps.length) { row.innerHTML='<div style="color:var(--muted);font-size:11px;padding:8px 0">No apps running</div>'; return; }
+  row.innerHTML = apps.map(a => {
+    const cached = iconCache[a.name];
+    const iconContent = cached
+      ? `<img src="${cached}" alt="" style="width:46px;height:46px;border-radius:13px;object-fit:cover">`
+      : `<span style="font-size:22px">${a.emoji||'📱'}</span>`;
+    return `<div class="dash-app-chip" onclick="openAppMenu('${esc(a.name)}','${esc(a.emoji||'📱')}',true)">
+      <div class="dac-icon">${iconContent}<div class="dac-dot"></div></div>
+      <div class="dac-lbl">${esc(a.name)}</div>
+    </div>`;
+  }).join('');
+  // lazy-load icons for dashboard chips too
+  loadIconsFor(apps, () => renderDashRunning(allRunning));
+}
+
+function renderRunning(apps) {
+  const g = document.getElementById('running-grid');
+  if (!g) return;
+  if (!apps.length) {
+    g.innerHTML='<div class="ldrow">No running apps found</div>'; return;
+  }
+  g.innerHTML = apps.map(a => {
+    const ico = iconHtml(a, 34, 'app-icon-img');
+    // Tap tile = immediate focus; ⋯ button = management menu (quit/force-quit)
+    return `<div class="app-tile running" onclick="focusAppImmediate('${esc(a.name)}')">
+      <div class="run-dot"></div>
+      <button class="tile-mgr" onclick="event.stopPropagation();openAppMenu('${esc(a.name)}','${esc(a.emoji||'📱')}',true)" title="Manage">⋯</button>
+      ${ico}
+      <span class="lbl">${esc(a.name)}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderInstalled(apps) {
+  const runSet = new Set(allRunning.map(a=>a.name.toLowerCase()));
+  const g = document.getElementById('installed-grid');
+  if (!g) return;
+  if (!apps.length) { g.innerHTML='<div class="ldrow">No apps found</div>'; return; }
+  g.innerHTML = apps.map(a => {
+    const isRunning = runSet.has(a.name.toLowerCase());
+    const ico = iconHtml(a, 34, 'app-icon-img');
+    // Running = immediate focus + ⋯; not-running = launch
+    const onClick = isRunning
+      ? `focusAppImmediate('${esc(a.name)}')`
+      : `launchAppImmediate('${esc(a.path)}','${esc(a.name)}')`;
+    const mgr = isRunning
+      ? `<button class="tile-mgr" onclick="event.stopPropagation();openAppMenu('${esc(a.name)}','${esc(a.emoji||'📱')}',true)" title="Manage">⋯</button>`
+      : '';
+    return `<div class="app-tile${isRunning?' running':''}" onclick="${onClick}">
+      ${isRunning?'<div class="run-dot"></div>':''}
+      ${mgr}
+      ${ico}
+      <span class="lbl">${esc(a.name)}</span>
+    </div>`;
+  }).join('');
+}
+
+function filterApps(q) {
+  q = q.toLowerCase().trim();
+  const fr = q ? allRunning.filter(a=>a.name.toLowerCase().includes(q)) : allRunning;
+  const fi = q ? allInstalled.filter(a=>a.name.toLowerCase().includes(q)) : allInstalled;
+  renderRunning(fr); renderInstalled(fi);
+  document.getElementById('running-sec').style.display = fr.length||!q ? '' : 'none';
+}
+
+// ─── App Menu ─────────────────────────────────────────
+function openAppMenu(name, emoji, isRunning) {
+  haptic();
+  _menuApp = {name, emoji, isRunning};
+  const cached = iconCache[name];
+  const iconEl = document.getElementById('amenu-icon');
+  if (cached) {
+    iconEl.innerHTML = `<img src="${cached}" alt="">`;
+  } else {
+    iconEl.innerHTML = `<span id="amenu-ico-emoji">${emoji||'📱'}</span>`;
+    // try to load icon in background
+    getAppIcon(name).then(url => {
+      if (url) iconEl.innerHTML = `<img src="${url}" alt="">`;
+    });
+  }
+  document.getElementById('amenu-name').textContent = name;
+  const st = document.getElementById('amenu-status');
+  st.textContent = isRunning ? '● Running' : 'Not running';
+  st.className = 'app-menu-status' + (isRunning ? ' running' : '');
+  document.getElementById('amenu-quit').style.display = isRunning ? '' : 'none';
+  document.getElementById('amenu-fq').style.display = isRunning ? '' : 'none';
+  document.getElementById('app-menu').style.display = 'flex';
+}
+
+function closeAppMenu(e) {
+  if (e && e.target !== document.getElementById('app-menu')) return;
+  document.getElementById('app-menu').style.display = 'none';
+  _menuApp = null;
+}
+
+async function menuAction(action) {
+  if (!_menuApp) return;
+  haptic();
+  const {name, isRunning} = _menuApp;
+  document.getElementById('app-menu').style.display = 'none';
+  _menuApp = null;
+
+  if (action === 'open') {
+    try {
+      const d = await api('POST','/api/apps/launch',{name, path:''});
+      toast(d.ok?'✓ Switched to '+name:(d.error||'Error'), d.ok?'ok':'err');
+      setTimeout(loadRunningApps, 2000);
+    } catch {}
+  } else if (action === 'quit') {
+    try {
+      const d = await api('POST','/api/apps/quit',{name});
+      toast(d.ok?'✓ Quit '+name:(d.error||'Error'), d.ok?'ok':'err');
+      setTimeout(loadRunningApps, 2500);
+    } catch {}
+  } else if (action === 'force_quit') {
+    if (!confirm(`Force quit "${name}"? Unsaved data will be lost.`)) return;
+    try {
+      const d = await api('POST','/api/apps/force_quit',{name});
+      toast(d.ok?'✓ Force quit '+name:(d.error||'Error'), d.ok?'ok':'err');
+      setTimeout(loadRunningApps, 1500);
+    } catch {}
+  }
+}
+
+// ─── Safari ───────────────────────────────────────────
+async function refreshSafari() {
+  try {
+    const d=await api('GET','/api/safari/info');
+    document.getElementById('sf-title').textContent=d.title||'—';
+    document.getElementById('sf-url').textContent=d.url||'—';
+  } catch {}
+}
+async function sfAct(a) {
+  haptic();
+  try {
+    await api('GET',`/api/safari/action?action=${a}`);
+    setTimeout(refreshSafari, 700);
+  } catch {}
+}
+async function sfNav() {
+  let url=document.getElementById('sf-nav').value.trim(); if(!url) return; haptic();
+  try { await api('POST','/api/safari/navigate',{url}); toast('✓ Navigating');
+    document.getElementById('sf-nav').value=''; setTimeout(refreshSafari,1200); } catch {}
+}
+async function sfTab() {
+  let url=document.getElementById('sf-tab').value.trim(); if(!url) return; haptic();
+  try { await api('POST','/api/safari/newtab',{url}); toast('✓ New tab');
+    document.getElementById('sf-tab').value=''; } catch {}
+}
+async function sfRunJS() {
+  const js=document.getElementById('sf-js').value.trim(); if(!js) return; haptic();
+  const out=document.getElementById('sf-js-out');
+  out.textContent='Running…'; out.classList.add('show');
+  try { const d=await api('POST','/api/safari/js',{js}); out.textContent=d.output||d.error||'(no output)'; }
+  catch { out.textContent='Error'; }
+}
+['sf-nav','sf-tab'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter') id.includes('tab')?sfTab():sfNav();});
+});
+
+// ─── Terminal ─────────────────────────────────────────
+function setMode(m) {
+  termMode=m;
+  document.getElementById('mode-s').classList.toggle('on',m==='silent');
+  document.getElementById('mode-v').classList.toggle('on',m==='visible');
+}
+async function termRun() {
+  const cmd=document.getElementById('term-inp').value.trim(); if(!cmd) return; haptic();
+  const out=document.getElementById('term-out');
+  out.textContent='$ '+cmd+'\nRunning…'; out.classList.add('show');
+  try {
+    const d=await api('POST','/api/terminal/run',{command:cmd, visible:termMode==='visible'});
+    if(termMode==='visible') { out.textContent='$ '+cmd+'\n→ Opened in Terminal.app'; }
+    else {
+      const rc=d.returncode!==undefined?` [exit ${d.returncode}]`:'';
+      out.textContent='$ '+cmd+rc+'\n'+(d.output||'')+(d.error?'\nSTDERR: '+d.error:'');
+    }
+  } catch { out.textContent='$ '+cmd+'\nError'; }
+}
+document.getElementById('term-inp').addEventListener('keydown',e=>{if(e.key==='Enter')termRun();});
+function qcmd(cmd) { document.getElementById('term-inp').value=cmd; termRun(); }
+async function readTerm() {
+  const out=document.getElementById('term-read');
+  out.textContent='Reading…'; out.classList.add('show');
+  try { const d=await api('GET','/api/terminal/output'); out.textContent=d.output||'(empty)'; }
+  catch { out.textContent='Error'; }
+}
+
+// ─── Unlock & Wake ────────────────────────────────────
+function togglePw() {
+  const i=document.getElementById('pw-inp');
+  i.type=i.type==='password'?'text':'password';
+  document.getElementById('pw-eye').textContent=i.type==='password'?'👁️':'🙈';
+}
+
+async function doWake() {
+  haptic();
+  const btn=document.getElementById('wake-btn');
+  btn.innerHTML='<span class="spin"></span>Waking…'; btn.disabled=true;
+  const res=document.getElementById('unl-res');
+  try {
+    const d=await api('POST','/api/unlock/wake',{});
+    res.textContent=d.ok?'✓ Wake signal sent — display should turn on':'✗ '+(d.error||'Failed');
+    res.className='unl-res show '+(d.ok?'info':'err');
+  } catch { res.textContent='✗ Connection lost'; res.className='unl-res show err'; }
+  btn.innerHTML='☀️ Wake Display Only'; btn.disabled=false;
+}
+
+async function doUnlock() {
+  const pw=document.getElementById('pw-inp').value; if(!pw){toast('Enter password','err');return;}
+  haptic();
+  const btn=document.getElementById('unl-btn');
+  btn.innerHTML='<span class="spin"></span>Waking & Unlocking…'; btn.disabled=true;
+  const res=document.getElementById('unl-res');
+  try {
+    const d=await api('POST','/api/unlock',{password:pw});
+    if (d.permission_error) {
+      res.innerHTML='⚠ Missing permissions:<br><br>'
+        +'<strong>① Accessibility</strong><br>'
+        +'System Settings → Privacy &amp; Security → Accessibility → add Terminal<br><br>'
+        +'<strong>② Automation → System Events</strong><br>'
+        +'System Settings → Privacy &amp; Security → Automation → Terminal → System Events<br><br>'
+        +'Restart server after granting both.';
+      res.className='unl-res show info';
+    } else if (d.ok===false) {
+      res.textContent='✗ '+(d.error||'Failed');
+      res.className='unl-res show err';
+    } else {
+      res.textContent='✓ Unlock command sent — check your Mac';
+      res.className='unl-res show ok';
+      document.getElementById('pw-inp').value='';
+    }
+  } catch { res.textContent='✗ Connection lost'; res.className='unl-res show err'; }
+  btn.innerHTML='🔓 Wake & Unlock'; btn.disabled=false;
+}
+
+// ─── Bluetooth ────────────────────────────────────────
+async function loadBluetooth() {
+  btLoaded=true;
+  document.getElementById('bt-conn-list').innerHTML='<div style="color:var(--muted);font-size:11.5px;padding:6px 2px"><span class="spin" style="border-top-color:var(--muted)"></span> Loading…</div>';
+  document.getElementById('bt-avail-list').innerHTML='';
+  try {
+    const d=await api('GET','/api/bluetooth');
+    if(!d.ok){ document.getElementById('bt-conn-list').innerHTML=`<div style="color:var(--danger);font-size:11.5px;padding:6px 2px">Error: ${d.error}</div>`; return; }
+    renderBTList('bt-conn-list', d.connected||[], true);
+    renderBTList('bt-avail-list', d.available||[], false);
+    const sbt = document.getElementById('sb-bt');
+    if (sbt) { sbt.textContent=(d.connected?.length||0)+' devs'; sbt.className='sbtxt'+((d.connected?.length||0)>0?' ok':''); }
+  } catch { document.getElementById('bt-conn-list').innerHTML='<div style="color:var(--danger);font-size:11.5px">Error</div>'; }
+}
+
+function renderBTList(id, devices, connected) {
+  const c=document.getElementById(id);
+  if(!devices.length){ c.innerHTML=`<div style="color:var(--muted);font-size:11.5px;padding:6px 2px">${connected?'Nothing connected':'No paired devices'}</div>`; return; }
+  c.innerHTML=devices.map(dev=>{
+    const addr=dev.address||'';
+    const actBtn=addr
+      ? connected
+        ? `<button class="bt-btn disconnect" onclick="btToggle('${esc(addr)}',false)">Disconnect</button>`
+        : `<button class="bt-btn connect" onclick="btToggle('${esc(addr)}',true)">Connect</button>`
+      : '';
+    return `<div class="bt-dev">
+      <div class="bt-ico">${dev.emoji||'🔵'}</div>
+      <div class="bt-info">
+        <div class="bt-name">${esc(dev.name)}</div>
+        <div class="bt-meta">${dev.type||''}${addr?' · '+addr:''}</div>
+      </div>
+      <span class="bt-badge ${connected?'on':'off'}">${connected?'●':'○'}</span>
+      ${actBtn}
+    </div>`;
+  }).join('');
+}
+
+async function btToggle(address, connect) {
+  haptic();
+  try {
+    const d=await api('POST',connect?'/api/bluetooth/connect':'/api/bluetooth/disconnect',{address});
+    if(d.needs_blueutil){ document.getElementById('bt-note').classList.add('show'); toast('Install blueutil first','err'); }
+    else if(!d.ok){ toast(d.error||'Error','err'); }
+    else { toast(connect?'✓ Connected':'✓ Disconnected'); setTimeout(loadBluetooth,1500); }
+  } catch { toast('Error','err'); }
+}
+
+// ─── AppleScript ──────────────────────────────────────
+async function runScript() {
+  const script=document.getElementById('script-inp').value.trim(); if(!script) return; haptic();
+  const out=document.getElementById('sout'); out.textContent='Running…'; out.classList.add('show');
+  try { const d=await api('POST','/api/custom',{script}); out.textContent=d.output||d.error||'(no output)'; }
+  catch { out.textContent='Error'; }
+}
+function ps(script) { document.getElementById('script-inp').value=script; runScript(); }
+
+// ─── Change PIN ───────────────────────────────────────
+async function changePIN() {
+  const op=document.getElementById('cp-old').value;
+  const np=document.getElementById('cp-new').value;
+  const res=document.getElementById('cp-res');
+  if(!op||!np){ toast('Fill both fields','err'); return; }
+  try {
+    const d=await api('POST','/api/auth/change_pin',{old_pin:op,new_pin:np});
+    res.textContent=d.ok?'✓ PIN changed':'✗ '+d.error;
+    res.className='unl-res show '+(d.ok?'ok':'err');
+    if(d.ok){ document.getElementById('cp-old').value=''; document.getElementById('cp-new').value=''; }
+  } catch { res.textContent='Error'; res.className='unl-res show err'; }
+}
+
+// ─── Logout ───────────────────────────────────────────
+async function doLogout() {
+  if(!confirm('Log out?')) return;
+  try { await api('POST','/api/auth/logout',{}); } catch {}
+  localStorage.removeItem(LS); location.reload();
+}
+
+// ─── Dark Mode ────────────────────────────────────────
+async function refreshDarkMode() {
+  try {
+    const d = await api('GET','/api/darkmode');
+    const btn = document.getElementById('btn-darkmode');
+    if (btn) {
+      btn.innerHTML = `<span class="i">${d.dark_mode ? '☀️' : '🌙'}</span>${d.dark_mode ? 'Light Mode' : 'Dark Mode'}`;
+    }
+  } catch {}
+}
+
+async function toggleDarkMode() {
+  haptic();
+  try {
+    const d = await api('POST','/api/darkmode/toggle',{});
+    const btn = document.getElementById('btn-darkmode');
+    if (btn) btn.innerHTML = `<span class="i">${d.dark_mode ? '☀️' : '🌙'}</span>${d.dark_mode ? 'Light Mode' : 'Dark Mode'}`;
+    const dashIco = document.getElementById('dash-dm-ico');
+    const dashLbl = document.getElementById('dash-dm-lbl');
+    if (dashIco) dashIco.textContent = d.dark_mode ? '☀️' : '🌙';
+    if (dashLbl) dashLbl.textContent = d.dark_mode ? 'Light Mode' : 'Dark Mode';
+    toast(d.dark_mode ? '🌙 Dark mode on' : '☀️ Light mode on');
+  } catch { toast('Error','err'); }
+}
+
+// ─── Screenshot ───────────────────────────────────────
+async function takeScreenshot() {
+  haptic();
+  const btn = document.getElementById('ss-btn');
+  btn.innerHTML = '<span class="spin"></span>Capturing…'; btn.disabled = true;
+  try {
+    const d = await api('GET','/api/screenshot');
+    if (!d.ok) { toast(d.error || 'Capture failed', 'err'); return; }
+    const img = document.getElementById('ss-img');
+    img.src = `data:${d.mime};base64,${d.data}`;
+    img.style.display = 'block';
+    img.classList.remove('zoomed');
+    const ts = new Date().toLocaleTimeString();
+    document.getElementById('ss-ts').textContent = ts;
+    toast('✓ Screenshot captured');
+  } catch { toast('Error capturing screenshot','err'); }
+  finally { btn.innerHTML = '📸 Capture Mac Screen'; btn.disabled = false; }
+}
+
+// ─── Clipboard ────────────────────────────────────────
+async function clipRead() {
+  haptic();
+  try {
+    const d = await api('GET','/api/clipboard');
+    document.getElementById('clip-ta').value = d.text || '';
+    toast('✓ Clipboard read');
+  } catch { toast('Error','err'); }
+}
+
+async function clipWrite() {
+  haptic();
+  const text = document.getElementById('clip-ta').value;
+  try {
+    const d = await api('POST','/api/clipboard',{text});
+    toast(d.ok ? '✓ Pushed to Mac clipboard' : (d.error||'Error'), d.ok?'ok':'err');
+  } catch { toast('Error','err'); }
+}
+
+// ─── Notifications ────────────────────────────────────
+async function sendNotify() {
+  const title = document.getElementById('notif-title').value.trim() || 'Mac Remote';
+  const subtitle = document.getElementById('notif-sub').value.trim();
+  const message = document.getElementById('notif-msg').value.trim();
+  if (!message) { toast('Enter a message','err'); return; }
+  haptic();
+  try {
+    const d = await api('POST','/api/notify',{title, subtitle, message});
+    if (d.ok) {
+      toast('✓ Notification sent');
+      document.getElementById('notif-msg').value = '';
+    } else { toast(d.error||'Error','err'); }
+  } catch { toast('Error','err'); }
+}
+document.getElementById('notif-msg').addEventListener('keydown',e=>{if(e.key==='Enter')sendNotify();});
+
+// ─── Swipe to switch tabs ─────────────────────────────
+(function() {
+  const TAB_ORDER = ['dashboard','media','apps','safari','terminal','unlock','bluetooth','system','tools'];
+  let sx = 0, sy = 0, sTime = 0;
+  const pane = document.querySelector('.pane');
+
+  pane.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    sTime = Date.now();
+  }, {passive: true});
+
+  pane.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    const dt = Date.now() - sTime;
+
+    // Must be: fast enough (<500ms), wide enough (≥65px), clearly horizontal (dx dominates dy by 2.2×)
+    if (dt > 500) return;
+    if (Math.abs(dx) < 65) return;
+    if (Math.abs(dx) < Math.abs(dy) * 2.2) return;
+
+    const activeTab = document.querySelector('.tab.active');
+    if (!activeTab) return;
+    const cur = TAB_ORDER.indexOf(activeTab.dataset.page);
+    if (cur === -1) return;
+    const next = dx < 0
+      ? Math.min(cur + 1, TAB_ORDER.length - 1)
+      : Math.max(cur - 1, 0);
+    if (next === cur) return;
+
+    const nextTab = document.querySelector(`.tab[data-page="${TAB_ORDER[next]}"]`);
+    if (nextTab) {
+      nextTab.click();
+      // Scroll the tab pill into view inside the tabs strip
+      nextTab.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'center'});
+    }
+  }, {passive: true});
+})();
+
+// ─── Misc ─────────────────────────────────────────────
+function confirmSleep() { if(confirm('Sleep your Mac?')) ctrl('sleep'); }
+function haptic() { if(navigator.vibrate) navigator.vibrate(8); }
+
+let _tt;
+function toast(msg, type='ok') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`toast show ${type}`;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ─── Boot ─────────────────────────────────────────────
+initAuth();
+</script>
+</body>
+</html>
