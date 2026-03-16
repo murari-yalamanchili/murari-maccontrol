@@ -511,15 +511,26 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
   border:2px solid rgba(255,255,255,.25);border-top-color:#fff;
   animation:_sp .5s linear infinite;vertical-align:middle;margin-right:4px}
 @keyframes _sp{to{transform:rotate(360deg)}}
+
+/* ═══════════════ PLATFORM ADAPTATION ═══════════════ */
+/* Default: mac. JS sets body.platform-windows for Windows */
+.win-only { display: none !important }
+.mac-only { display: block }
+span.mac-only, button.mac-only { display: inline-flex }
+
+body.platform-windows .win-only { display: block !important }
+body.platform-windows span.win-only { display: inline !important }
+body.platform-windows button.win-only { display: inline-flex !important }
+body.platform-windows .mac-only { display: none !important }
 </style>
 </head>
 <body>
 
 <!-- ═══════════ LOGIN SCREEN ══════════════════════════════════════════════════ -->
 <div id="login-screen">
-  <div class="lg-logo">🍎</div>
+  <div class="lg-logo" id="lg-logo">🍎</div>
   <div class="lg-brand">Murari Systems</div>
-  <div class="lg-title">Murari MacControl <sup style="font-size:12px;font-weight:700;color:var(--a4);-webkit-text-fill-color:var(--a4);vertical-align:super">Beta</sup></div>
+  <div class="lg-title" id="lg-title">Murari MacControl <sup style="font-size:12px;font-weight:700;color:var(--a4);-webkit-text-fill-color:var(--a4);vertical-align:super">Beta</sup></div>
   <div class="lg-sub" id="lg-sub">Enter your PIN to securely connect to your Mac</div>
 
   <div class="pin-dots" id="pin-dots">
@@ -552,7 +563,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
   <!-- Status bar -->
   <div id="sbar">
     <div class="sb-brand">
-      <span class="sb-brand-name">Murari MacControl</span>
+      <span class="sb-brand-name" id="sb-brand-name">Murari MacControl</span>
       <span class="sb-brand-beta">Beta</span>
     </div>
     <div class="sbseg">
@@ -573,10 +584,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     <div class="tab active" data-page="dashboard">⌘ Dashboard</div>
     <div class="tab" data-page="media">🎵 Media</div>
     <div class="tab" data-page="apps">📱 Apps</div>
-    <div class="tab" data-page="safari">🌐 Safari</div>
+    <div class="tab mac-only" data-page="safari">🌐 Safari</div>
     <div class="tab" data-page="terminal">⌨️ Terminal</div>
-    <div class="tab" data-page="unlock">🔓 Unlock</div>
-    <div class="tab" data-page="bluetooth">🔵 Bluetooth</div>
+    <div class="tab mac-only" data-page="unlock">🔓 Unlock</div>
+    <div class="tab win-only" data-page="unlock">🔒 Power</div>
+    <div class="tab mac-only" data-page="bluetooth">🔵 Bluetooth</div>
     <div class="tab" data-page="system">🖥️ System</div>
     <div class="tab" data-page="tools">🔧 Tools</div>
   </div>
@@ -649,17 +661,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
           <span class="dqa-ico">🎵</span>
           <div class="dqa-info"><div class="dqa-name">Media</div><div class="dqa-sub">Play, volume, brightness</div></div>
         </div>
-        <div class="dash-qa a2" onclick="switchTab('unlock')">
+        <div class="dash-qa a2 mac-only" onclick="switchTab('unlock')">
           <span class="dqa-ico">🔓</span>
-          <div class="dqa-info"><div class="dqa-name">Unlock</div><div class="dqa-sub">Wake & unlock Mac</div></div>
+          <div class="dqa-info"><div class="dqa-name">Unlock</div><div class="dqa-sub">Wake &amp; unlock Mac</div></div>
         </div>
-        <div class="dash-qa a3" onclick="ctrl('screenshot');toast('✓ Screenshot saved to Desktop')">
+        <div class="dash-qa a2 win-only" onclick="switchTab('unlock')">
+          <span class="dqa-ico">⚡</span>
+          <div class="dqa-info"><div class="dqa-name">Power</div><div class="dqa-sub">Lock, Sleep, Shutdown</div></div>
+        </div>
+        <div class="dash-qa a3" onclick="ctrl('screenshot');toast('✓ Screenshot captured')">
           <span class="dqa-ico">📸</span>
-          <div class="dqa-info"><div class="dqa-name">Screenshot</div><div class="dqa-sub">Save to Desktop</div></div>
+          <div class="dqa-info"><div class="dqa-name">Screenshot</div><div class="dqa-sub" id="dash-ss-sub">Save to Desktop</div></div>
         </div>
         <div class="dash-qa a4" onclick="switchTab('system')">
           <span class="dqa-ico">🖥️</span>
-          <div class="dqa-info"><div class="dqa-name">System</div><div class="dqa-sub">Controls & tools</div></div>
+          <div class="dqa-info"><div class="dqa-name">System</div><div class="dqa-sub">Controls &amp; tools</div></div>
         </div>
         <div class="dash-qa" onclick="ctrl('lock')">
           <span class="dqa-ico">🔒</span>
@@ -675,7 +691,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         </div>
         <div class="dash-qa" onclick="confirmSleep()">
           <span class="dqa-ico">😴</span>
-          <div class="dqa-info"><div class="dqa-name">Sleep</div><div class="dqa-sub">Put Mac to sleep</div></div>
+          <div class="dqa-info"><div class="dqa-name" id="dash-sleep-lbl">Sleep</div><div class="dqa-sub" id="dash-sleep-sub">Put Mac to sleep</div></div>
         </div>
       </div>
     </div>
@@ -830,7 +846,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       <div class="term-out show" id="term-out">$ _</div>
       <div class="card" style="margin-top:9px">
         <div class="clbl">Quick Commands</div>
-        <div class="qgrid">
+        <!-- Mac quick commands -->
+        <div class="qgrid mac-only">
           <button class="qbtn" onclick="qcmd('ls ~/Desktop')">📁 ls Desktop</button>
           <button class="qbtn" onclick="qcmd('df -h')">💾 Disk usage</button>
           <button class="qbtn" onclick="qcmd('top -l 1 -n 5 -stats pid,command,cpu')">📊 CPU top</button>
@@ -840,6 +857,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
           <button class="qbtn" onclick="qcmd('ls ~/Downloads|tail -10')">📥 Downloads</button>
           <button class="qbtn" onclick="qcmd('sw_vers')">🍎 macOS ver</button>
         </div>
+        <!-- Windows quick commands -->
+        <div class="qgrid win-only">
+          <button class="qbtn" onclick="qcmd('dir $env:USERPROFILE\\Desktop')">📁 ls Desktop</button>
+          <button class="qbtn" onclick="qcmd('Get-PSDrive C | Select-Object Used,Free')">💾 Disk usage</button>
+          <button class="qbtn" onclick="qcmd('Get-Process | Sort-Object CPU -Desc | Select-Object -First 5 Name,CPU')">📊 CPU top</button>
+          <button class="qbtn" onclick="qcmd('(Get-NetIPAddress -AddressFamily IPv4).IPAddress')">🌐 IP info</button>
+          <button class="qbtn" onclick="qcmd('Get-Process | Sort-Object WorkingSet -Desc | Select-Object -First 5 Name,@{N=&quot;MB&quot;;E={[math]::Round($_.WorkingSet/1MB,1)}}')">🔥 Mem hogs</button>
+          <button class="qbtn" onclick="qcmd('(Get-Date) - (gcim Win32_OperatingSystem).LastBootUpTime')">⏱ Uptime</button>
+          <button class="qbtn" onclick="qcmd('dir $env:USERPROFILE\\Downloads | Select-Object -Last 10 Name')">📥 Downloads</button>
+          <button class="qbtn" onclick="qcmd('(Get-WmiObject Win32_OperatingSystem).Caption')">🪟 Windows ver</button>
+        </div>
       </div>
       <div class="card" style="margin-top:9px">
         <div class="clbl">Read Terminal Window</div>
@@ -848,48 +876,69 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       </div>
     </div>
 
-    <!-- ── UNLOCK ─────────────────────────────── -->
+    <!-- ── UNLOCK / POWER ────────────────────────── -->
     <div class="page" id="page-unlock">
 
-      <div class="perm-tip">
-        <strong>⚙ Two Permissions Required for Unlock</strong>
-        <strong style="display:block;margin-top:6px;font-size:9px;letter-spacing:1px">① Accessibility</strong>
-        System Settings → Privacy &amp; Security → Accessibility → add Terminal (or iTerm2)<br><br>
-        <strong style="display:block;font-size:9px;letter-spacing:1px">② Automation → System Events</strong>
-        System Settings → Privacy &amp; Security → Automation → Terminal → enable System Events<br><br>
-        After granting both, <strong>restart the server</strong>. Note: unlock works best for display-sleep, not full logout screens.
-      </div>
-
-      <div class="card">
-        <div style="font-size:42px;text-align:center;padding:6px 0 2px">🔐</div>
-        <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:13px;line-height:1.5">
-          Wake and unlock your Mac remotely.<br>Requires Accessibility permission (see above).
+      <!-- ══ MAC UNLOCK ══════════════════════════════════ -->
+      <div class="mac-only">
+        <div class="perm-tip">
+          <strong>⚙ Two Permissions Required for Unlock</strong>
+          <strong style="display:block;margin-top:6px;font-size:9px;letter-spacing:1px">① Accessibility</strong>
+          System Settings → Privacy &amp; Security → Accessibility → add Terminal (or iTerm2)<br><br>
+          <strong style="display:block;font-size:9px;letter-spacing:1px">② Automation → System Events</strong>
+          System Settings → Privacy &amp; Security → Automation → Terminal → enable System Events<br><br>
+          After granting both, <strong>restart the server</strong>. Unlock works best for display-sleep, not full logout screens.
         </div>
-
-        <!-- Wake Only -->
-        <button class="wake-btn" onclick="doWake()" id="wake-btn">
-          ☀️ Wake Display Only
-        </button>
-
-        <!-- Password + Unlock -->
-        <div class="pw-wrap">
-          <input type="password" class="pw-inp" id="pw-inp"
-            placeholder="Mac login password"
-            autocomplete="current-password"
-            onkeydown="if(event.key==='Enter') doUnlock()">
-          <button class="pw-eye" onclick="togglePw()" id="pw-eye">👁️</button>
-        </div>
-        <button class="unl-btn" onclick="doUnlock()" id="unl-btn">🔓 Wake &amp; Unlock</button>
-        <div class="unl-res" id="unl-res"></div>
-
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">
-          <div class="clbl">Quick</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
-            <button class="btn-sys warn" onclick="ctrl('lock')" style="border-radius:11px"><span class="i">🔒</span>Lock</button>
-            <button class="btn-sys warn" onclick="ctrl('sleep')" style="border-radius:11px"><span class="i">😴</span>Sleep</button>
+        <div class="card">
+          <div style="font-size:42px;text-align:center;padding:6px 0 2px">🔐</div>
+          <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:13px;line-height:1.5">
+            Wake and unlock your Mac remotely.<br>Requires Accessibility permission (see above).
+          </div>
+          <button class="wake-btn" onclick="doWake()" id="wake-btn">☀️ Wake Display Only</button>
+          <div class="pw-wrap">
+            <input type="password" class="pw-inp" id="pw-inp"
+              placeholder="Mac login password" autocomplete="current-password"
+              onkeydown="if(event.key==='Enter') doUnlock()">
+            <button class="pw-eye" onclick="togglePw()" id="pw-eye">👁️</button>
+          </div>
+          <button class="unl-btn" onclick="doUnlock()" id="unl-btn">🔓 Wake &amp; Unlock</button>
+          <div class="unl-res" id="unl-res"></div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">
+            <div class="clbl">Quick</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+              <button class="btn-sys warn" onclick="ctrl('lock')" style="border-radius:11px"><span class="i">🔒</span>Lock</button>
+              <button class="btn-sys warn" onclick="ctrl('sleep')" style="border-radius:11px"><span class="i">😴</span>Sleep</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <!-- ══ WINDOWS POWER ════════════════════════════════ -->
+      <div class="win-only">
+        <div class="card" style="margin-bottom:11px">
+          <div style="font-size:42px;text-align:center;padding:6px 0 6px">🪟</div>
+          <div style="font-size:11.5px;color:var(--muted);text-align:center;margin-bottom:16px;line-height:1.6">
+            Power controls for your Windows PC.<br>Shutdown &amp; Restart have a 30-second delay so you can cancel.
+          </div>
+          <div class="sys-grid">
+            <button class="btn-sys" onclick="ctrl('lock')"><span class="i">🔒</span>Lock Screen</button>
+            <button class="btn-sys" onclick="confirmSleep()"><span class="i">😴</span>Sleep PC</button>
+            <button class="btn-sys warn" onclick="confirmShutdown()"><span class="i">⏻</span>Shutdown</button>
+            <button class="btn-sys warn" onclick="confirmRestart()"><span class="i">🔄</span>Restart</button>
+          </div>
+          <div class="unl-res" id="win-power-res"></div>
+        </div>
+        <div class="card">
+          <div class="clbl">Cancel Pending Shutdown / Restart</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">
+            If you triggered a shutdown or restart and changed your mind, cancel it here within 30 seconds.
+          </div>
+          <button class="btn btn-full warn" onclick="ctrl('cancel_shutdown').then(d=>toast(d.ok?'✓ Cancelled':d.error,'ok'))" style="height:42px">
+            ✕ Cancel Shutdown / Restart
+          </button>
+        </div>
+      </div>
+
     </div>
 
     <!-- ── BLUETOOTH ──────────────────────────── -->
@@ -909,7 +958,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 
     <!-- ── SYSTEM ─────────────────────────────── -->
     <div class="page" id="page-system">
-      <div class="sys-grid">
+      <!-- Mac system grid -->
+      <div class="sys-grid mac-only">
         <button class="btn-sys" onclick="ctrl('screenshot')"><span class="i">📸</span>Screenshot</button>
         <button class="btn-sys" onclick="ctrl('show_desktop')"><span class="i">🖥️</span>Show Desktop</button>
         <button class="btn-sys" onclick="ctrl('mission_control')"><span class="i">🗂️</span>Mission Ctrl</button>
@@ -919,8 +969,20 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         <button class="btn-sys warn" onclick="ctrl('force_quit_front')"><span class="i">❌</span>Force Quit</button>
         <button class="btn-sys danger span2" onclick="confirmSleep()"><span class="i">😴</span>Sleep Mac</button>
       </div>
+      <!-- Windows system grid -->
+      <div class="sys-grid win-only">
+        <button class="btn-sys" onclick="ctrl('screenshot')"><span class="i">📸</span>Screenshot</button>
+        <button class="btn-sys" id="btn-darkmode-win" onclick="toggleDarkMode()"><span class="i">🌙</span>Dark Mode</button>
+        <button class="btn-sys" onclick="ctrl('lock')"><span class="i">🔒</span>Lock Screen</button>
+        <button class="btn-sys" onclick="confirmSleep()"><span class="i">😴</span>Sleep PC</button>
+        <button class="btn-sys warn" onclick="confirmShutdown()"><span class="i">⏻</span>Shutdown</button>
+        <button class="btn-sys warn" onclick="confirmRestart()"><span class="i">🔄</span>Restart</button>
+        <button class="btn-sys" onclick="ctrl('cancel_shutdown')"><span class="i">✕</span>Cancel Shutdown</button>
+        <button class="btn-sys warn" onclick="ctrl('mute_toggle')"><span class="i">🔇</span>Mute Toggle</button>
+      </div>
+
       <div class="card" style="margin-bottom:9px">
-        <div class="clbl">Open URL on Mac</div>
+        <div class="clbl" id="lbl-open-url">Open URL on Mac</div>
         <div class="row">
           <input type="url" class="inp" id="url-inp" placeholder="https://…">
           <button class="btn btn-ico a2" onclick="sendUrl()" style="flex-shrink:0">→</button>
@@ -931,8 +993,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
           <div class="clbl" style="margin:0">Screenshot Viewer</div>
           <span class="ss-ts" id="ss-ts"></span>
         </div>
-        <button class="btn btn-full" style="height:40px;font-size:12px" id="ss-btn" onclick="takeScreenshot()">📸 Capture Mac Screen</button>
-        <img class="ss-img" id="ss-img" style="display:none" alt="Mac screenshot" onclick="this.classList.toggle('zoomed')">
+        <button class="btn btn-full" style="height:40px;font-size:12px" id="ss-btn" onclick="takeScreenshot()">📸 <span id="lbl-capture">Capture Mac Screen</span></button>
+        <img class="ss-img" id="ss-img" style="display:none" alt="screenshot" onclick="this.classList.toggle('zoomed')">
       </div>
     </div>
 
@@ -940,14 +1002,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     <div class="page" id="page-tools">
       <div class="card" style="margin-bottom:9px">
         <div class="clbl">Clipboard</div>
-        <textarea class="clip-out" id="clip-ta" placeholder="Mac clipboard contents appear here…" spellcheck="false"></textarea>
+        <textarea class="clip-out" id="clip-ta" placeholder="Clipboard contents appear here…" spellcheck="false"></textarea>
         <div class="row" style="margin-top:7px;gap:6px">
-          <button class="btn btn-half a5" onclick="clipRead()">📋 Read Mac</button>
-          <button class="btn btn-half a1" onclick="clipWrite()">⬆ Push to Mac</button>
+          <button class="btn btn-half a5" onclick="clipRead()">📋 <span id="lbl-clip-read">Read Mac</span></button>
+          <button class="btn btn-half a1" onclick="clipWrite()">⬆ <span id="lbl-clip-write">Push to Mac</span></button>
         </div>
       </div>
       <div class="card" style="margin-bottom:9px">
-        <div class="clbl">Send Notification to Mac</div>
+        <div class="clbl" id="lbl-notify-hdr">Send Notification to Mac</div>
         <div style="display:flex;flex-direction:column;gap:6px">
           <input type="text" class="inp f4" id="notif-title" placeholder="Title" style="font-size:13px">
           <input type="text" class="inp" id="notif-sub" placeholder="Subtitle (optional)" style="font-size:12px">
@@ -955,14 +1017,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         </div>
         <button class="btn btn-full a4" style="margin-top:7px" onclick="sendNotify()">🔔 Send Notification</button>
       </div>
-      <div class="card" style="margin-bottom:9px">
+      <!-- AppleScript — Mac only -->
+      <div class="card mac-only" style="margin-bottom:9px">
         <div class="clbl">Custom AppleScript</div>
         <textarea class="inp f3" id="script-inp"
           placeholder='tell application "Finder" to open home'></textarea>
         <div class="sout" id="sout"></div>
         <button class="btn btn-full a3" style="margin-top:7px" onclick="runScript()">▶ Run AppleScript</button>
       </div>
-      <div class="card" style="margin-bottom:9px">
+      <!-- PowerShell — Windows only -->
+      <div class="card win-only" style="margin-bottom:9px">
+        <div class="clbl">Custom PowerShell</div>
+        <textarea class="inp f3" id="ps-inp"
+          placeholder="Get-Process | Select-Object -First 5 Name,CPU"></textarea>
+        <div class="sout" id="ps-out"></div>
+        <button class="btn btn-full a3" style="margin-top:7px" onclick="runPS()">▶ Run PowerShell</button>
+      </div>
+      <!-- Shortcuts — Mac only -->
+      <div class="card mac-only" style="margin-bottom:9px">
         <div class="clbl">Shortcuts</div>
         <div class="qgrid">
           <button class="qbtn" onclick="ps('tell application \\'System Events\\' to keystroke tab using command down')">⇥ Cmd+Tab</button>
@@ -1011,9 +1083,68 @@ let allInstalled = [], allRunning = [], appsLoaded = false;
 let btLoaded = false;
 let lastArtUrl = '';
 let pinLength = 6; // default, overridden by server
+let platform = 'macos'; // 'macos' | 'windows' — set from server
 
 // icon cache: name -> base64 data URL or emoji fallback
 const iconCache = {};
+
+// ─── Platform adaptation ──────────────────────────────
+function applyPlatform(p) {
+  platform = p;
+  const isWin = p === 'windows';
+  // Body class drives all mac-only/win-only CSS
+  document.body.classList.toggle('platform-windows', isWin);
+
+  // Text patches
+  const patches = isWin ? {
+    'lg-logo':        '🪟',
+    'lg-title':       'Murari WinControl <sup style="font-size:12px;font-weight:700;color:var(--a4);-webkit-text-fill-color:var(--a4);vertical-align:super">Beta</sup>',
+    'lg-sub':         'Enter your PIN to securely connect to your PC',
+    'sb-brand-name':  'Murari WinControl',
+    'lbl-open-url':   'Open URL on PC',
+    'lbl-capture':    'Capture PC Screen',
+    'lbl-clip-read':  'Read PC',
+    'lbl-clip-write': 'Push to PC',
+    'lbl-notify-hdr': 'Send Notification to PC',
+    'dash-sleep-lbl': 'Sleep',
+    'dash-sleep-sub': 'Put PC to sleep',
+  } : {
+    'lg-logo':        '🍎',
+    'lg-title':       'Murari MacControl <sup style="font-size:12px;font-weight:700;color:var(--a4);-webkit-text-fill-color:var(--a4);vertical-align:super">Beta</sup>',
+    'lg-sub':         'Enter your PIN to securely connect to your Mac',
+    'sb-brand-name':  'Murari MacControl',
+    'lbl-open-url':   'Open URL on Mac',
+    'lbl-capture':    'Capture Mac Screen',
+    'lbl-clip-read':  'Read Mac',
+    'lbl-clip-write': 'Push to Mac',
+    'lbl-notify-hdr': 'Send Notification to Mac',
+    'dash-sleep-lbl': 'Sleep',
+    'dash-sleep-sub': 'Put Mac to sleep',
+  };
+
+  for (const [id, html] of Object.entries(patches)) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  // Cert trust hint differs: Safari vs Chrome
+  const fpEl = document.getElementById('lg-fp');
+  if (fpEl && fpEl.style.display !== 'none') {
+    const hint = isWin
+      ? '\n\n📱 Android: tap Advanced → Proceed to trust this cert'
+      : '\n\n📱 iPhone: tap Show Details → Visit This Website';
+    if (!fpEl.textContent.includes('Android') && !fpEl.textContent.includes('iPhone')) {
+      fpEl.textContent += hint;
+    }
+  }
+
+  // Document title
+  document.title = isWin ? 'Murari WinControl' : 'Murari MacControl';
+
+  // TAB_ORDER swipe list — rebuild without safari/bluetooth on windows
+  // (handled by CSS hide, swipe will just skip hidden tabs automatically
+  //  because .tab elements with display:none won't match .tab.active)
+}
 
 // ─── Login / Setup ────────────────────────────────────
 let pinBuf = '', setupMode = false, setupStep = 0, setupFirst = '';
@@ -1028,7 +1159,10 @@ async function initAuth() {
     return;
   }
 
-// Set pin length from server (0 means unknown — old config without pin_length)
+  // Set platform immediately — drives all CSS mac-only/win-only
+  applyPlatform(d.platform || 'macos');
+
+  // Set pin length from server (0 means unknown — old config without pin_length)
   pinLength = d.pin_length || 0;
   buildDots(pinLength);
 
@@ -1791,7 +1925,7 @@ async function btToggle(address, connect) {
   } catch { toast('Error','err'); }
 }
 
-// ─── AppleScript ──────────────────────────────────────
+// ─── AppleScript (Mac) / PowerShell (Windows) ─────────
 async function runScript() {
   const script=document.getElementById('script-inp').value.trim(); if(!script) return; haptic();
   const out=document.getElementById('sout'); out.textContent='Running…'; out.classList.add('show');
@@ -1799,6 +1933,15 @@ async function runScript() {
   catch { out.textContent='Error'; }
 }
 function ps(script) { document.getElementById('script-inp').value=script; runScript(); }
+
+async function runPS() {
+  const cmd = document.getElementById('ps-inp').value.trim(); if (!cmd) return; haptic();
+  const out = document.getElementById('ps-out'); out.textContent='Running…'; out.classList.add('show');
+  try {
+    const d = await api('POST','/api/terminal/run',{command: cmd, visible: false});
+    out.textContent = d.output || d.error || '(no output)';
+  } catch { out.textContent='Error'; }
+}
 
 // ─── Change PIN ───────────────────────────────────────
 async function changePIN() {
@@ -1942,7 +2085,16 @@ document.getElementById('notif-msg').addEventListener('keydown',e=>{if(e.key==='
 })();
 
 // ─── Misc ─────────────────────────────────────────────
-function confirmSleep() { if(confirm('Sleep your Mac?')) ctrl('sleep'); }
+function confirmSleep() {
+  const label = platform === 'windows' ? 'Sleep your PC?' : 'Sleep your Mac?';
+  if (confirm(label)) ctrl('sleep');
+}
+function confirmShutdown() {
+  if (confirm('Shutdown your PC? You have 30 seconds to cancel.')) ctrl('shutdown');
+}
+function confirmRestart() {
+  if (confirm('Restart your PC? You have 30 seconds to cancel.')) ctrl('restart');
+}
 function haptic() { if(navigator.vibrate) navigator.vibrate(8); }
 
 let _tt;
