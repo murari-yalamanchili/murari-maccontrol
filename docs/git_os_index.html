@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Control your Mac or Windows PC from your phone. No app store, no account, no cloud. Free and open source.">
+<meta property="og:title" content="Murari MacControl / WinControl">
+<meta property="og:description" content="Control your computer from your phone. Free, local, open source.">
+<meta name="theme-color" content="#05050f">
+<title>Murari MacControl · WinControl</title>
+<style>
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#05050f; --s1:#0a0a1a; --s2:#0f0f22; --card:#13132a;
+  --brd:rgba(255,255,255,.08); --brd2:rgba(255,255,255,.14);
+  --a1:#5e4fff; --a2:#ff4f9a; --a3:#3dffa0; --a4:#ffa83d; --a5:#3dcfff;
+  --txt:#ecedf8; --muted:#565680;
+  --mac:#5e4fff; --win:#3dcfff;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
+  background:var(--bg);color:var(--txt);min-height:100vh;
+  line-height:1.6;
+}
+
+/* ── Noise texture overlay ───────────────────────────────────────────────── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity:.4;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.wrap{max-width:900px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+
+/* ── Nav ─────────────────────────────────────────────────────────────────── */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 0;border-bottom:1px solid var(--brd);
+}
+.nav-brand{display:flex;align-items:baseline;gap:8px}
+.nav-logo{font-size:22px}
+.nav-name{font-size:15px;font-weight:800;letter-spacing:-.3px;
+  background:linear-gradient(135deg,var(--a1),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-badge{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  background:rgba(255,168,61,.12);border:1px solid rgba(255,168,61,.3);
+  border-radius:4px;padding:2px 5px;color:var(--a4)}
+.nav-links{display:flex;gap:20px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--muted);
+  text-decoration:none;transition:color .15s}
+.nav-links a:hover{color:var(--txt)}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+.hero{
+  text-align:center;padding:80px 0 60px;
+  background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(94,79,255,.15),transparent);
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--a3);background:rgba(61,255,160,.07);
+  border:1px solid rgba(61,255,160,.2);border-radius:100px;
+  padding:5px 14px;margin-bottom:24px;
+}
+.hero-eyebrow::before{content:'●';font-size:7px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:clamp(36px,6vw,64px);font-weight:900;letter-spacing:-2px;line-height:1.05;
+  margin-bottom:20px}
+h1 .grad-mac{background:linear-gradient(135deg,var(--mac),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h1 .grad-win{background:linear-gradient(135deg,var(--win),var(--a3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:18px;color:rgba(255,255,255,.55);max-width:520px;
+  margin:0 auto 16px;line-height:1.6}
+.hero-sub strong{color:var(--txt)}
+.hero-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:48px}
+.pill{font-size:11px;font-weight:600;color:var(--muted);
+  background:var(--s2);border:1px solid var(--brd);
+  border-radius:100px;padding:4px 12px}
+
+/* ── OS Detection Banner ─────────────────────────────────────────────────── */
+#os-banner{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:600;
+  background:var(--s2);border:1px solid var(--brd2);
+  border-radius:100px;padding:7px 16px;margin-bottom:48px;
+  opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s;
+}
+#os-banner.show{opacity:1;transform:translateY(0)}
+#os-banner .os-ico{font-size:16px}
+#os-banner .os-txt{color:var(--muted)}
+#os-banner .os-hi{color:var(--txt);font-weight:700}
+
+/* ── Download cards ──────────────────────────────────────────────────────── */
+.dl-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:16px;margin-bottom:60px;
+}
+@media(max-width:600px){.dl-grid{grid-template-columns:1fr}}
+
+.dl-card{
+  background:var(--card);border:1px solid var(--brd);
+  border-radius:20px;padding:28px 24px;
+  position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s,border-color .2s;
+  cursor:default;
+}
+.dl-card::before{
+  content:'';position:absolute;inset:0;opacity:0;
+  transition:opacity .3s;pointer-events:none;
+}
+.dl-card.mac::before{background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(94,79,255,.18),transparent)}
+.dl-card.win::before{background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(61,207,255,.15),transparent)}
+.dl-card.recommended{border-color:var(--brd2);box-shadow:0 0 0 1px rgba(255,255,255,.05) inset}
+.dl-card.mac.recommended{border-color:rgba(94,79,255,.5);box-shadow:0 8px 32px rgba(94,79,255,.2)}
+.dl-card.win.recommended{border-color:rgba(61,207,255,.5);box-shadow:0 8px 32px rgba(61,207,255,.18)}
+.dl-card.recommended::before{opacity:1}
+
+.rec-badge{
+  position:absolute;top:16px;right:16px;
+  font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+  padding:3px 9px;border-radius:100px;
+  display:none;
+}
+.dl-card.mac .rec-badge{background:rgba(94,79,255,.25);color:var(--a1);border:1px solid rgba(94,79,255,.4)}
+.dl-card.win .rec-badge{background:rgba(61,207,255,.2);color:var(--a5);border:1px solid rgba(61,207,255,.35)}
+.dl-card.recommended .rec-badge{display:block}
+
+.dl-icon{font-size:44px;margin-bottom:14px;display:block}
+.dl-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
+.dl-mac-color{color:var(--a1)}
+.dl-win-color{color:var(--a5)}
+.dl-subtitle{font-size:12px;color:var(--muted);margin-bottom:18px}
+.dl-features{list-style:none;margin-bottom:24px}
+.dl-features li{font-size:12.5px;color:rgba(255,255,255,.6);
+  padding:4px 0;display:flex;align-items:flex-start;gap:8px;border-bottom:1px solid var(--brd)}
+.dl-features li:last-child{border:none}
+.dl-features li::before{content:'✓';color:var(--a3);font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px}
+
+.dl-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;height:48px;border-radius:13px;border:none;
+  font-size:14px;font-weight:700;font-family:inherit;
+  cursor:pointer;text-decoration:none;transition:transform .12s,opacity .12s;
+}
+.dl-btn:active{transform:scale(.97);opacity:.85}
+.dl-btn.mac{background:linear-gradient(135deg,var(--a1),#7c3aed);color:#fff}
+.dl-btn.win{background:linear-gradient(135deg,var(--a5),#0ea5e9);color:#111}
+.dl-btn .dl-btn-ico{font-size:16px}
+
+.dl-req{font-size:10.5px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5}
+.dl-req a{color:var(--muted);text-decoration:underline}
+
+/* ── Steps section ───────────────────────────────────────────────────────── */
+.steps-section{
+  background:var(--s1);border:1px solid var(--brd);
+  border-radius:20px;padding:36px 32px;margin-bottom:60px;
+}
+.steps-section h2{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:6px}
+.steps-section .s-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.steps-tabs{display:flex;gap:6px;margin-bottom:24px}
+.steps-tab{
+  padding:6px 16px;border-radius:100px;font-size:12px;font-weight:600;
+  border:1px solid var(--brd);background:var(--s2);color:var(--muted);
+  cursor:pointer;transition:all .14s;
+}
+.steps-tab.active{background:var(--a1);border-color:var(--a1);color:#fff}
+.steps-pane{display:none}.steps-pane.active{display:block}
+.step{display:flex;gap:16px;margin-bottom:20px;align-items:flex-start}
+.step:last-child{margin-bottom:0}
+.step-num{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;
+}
+.step-num.mac{background:rgba(94,79,255,.2);color:var(--a1);border:1px solid rgba(94,79,255,.3)}
+.step-num.win{background:rgba(61,207,255,.15);color:var(--a5);border:1px solid rgba(61,207,255,.25)}
+.step-body{flex:1}
+.step-title{font-size:14px;font-weight:700;margin-bottom:3px}
+.step-desc{font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.5}
+code{font-family:'SF Mono','Consolas','Fira Code',monospace;
+  background:rgba(255,255,255,.07);border:1px solid var(--brd);
+  padding:1px 6px;border-radius:5px;font-size:11.5px;color:var(--a3)}
+
+/* ── Features grid ───────────────────────────────────────────────────────── */
+.features-section{margin-bottom:60px}
+.features-section h2{font-size:22px;font-weight:800;letter-spacing:-.4px;
+  text-align:center;margin-bottom:6px}
+.feat-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:28px}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.feat-card{
+  background:var(--card);border:1px solid var(--brd);
+  border-radius:14px;padding:16px;
+}
+.feat-card .f-ico{font-size:24px;margin-bottom:8px}
+.feat-card .f-name{font-size:12.5px;font-weight:700;margin-bottom:3px}
+.feat-card .f-desc{font-size:11px;color:var(--muted);line-height:1.4}
+.feat-card .f-plat{
+  display:inline-flex;gap:4px;margin-top:7px;
+}
+.plat-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
+.plat-tag.mac{background:rgba(94,79,255,.2);color:var(--a1)}
+.plat-tag.win{background:rgba(61,207,255,.15);color:var(--a5)}
+.plat-tag.both{background:rgba(61,255,160,.1);color:var(--a3)}
+
+/* ── Security section ────────────────────────────────────────────────────── */
+.sec-section{
+  background:var(--s1);border:1px solid var(--brd);
+  border-radius:20px;padding:36px 32px;margin-bottom:60px;
+  display:grid;grid-template-columns:1fr 1fr;gap:32px;
+}
+@media(max-width:600px){.sec-section{grid-template-columns:1fr}}
+.sec-section h2{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:12px}
+.sec-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.sec-row:last-child{margin-bottom:0}
+.sec-ico{font-size:18px;flex-shrink:0;width:24px;text-align:center;margin-top:1px}
+.sec-text{font-size:12.5px;color:rgba(255,255,255,.6);line-height:1.5}
+.sec-text strong{color:var(--txt);display:block;margin-bottom:1px;font-size:13px}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+footer{
+  border-top:1px solid var(--brd);padding:32px 0;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;
+}
+.foot-brand{font-size:13px;color:var(--muted)}
+.foot-brand strong{color:var(--txt)}
+.foot-links{display:flex;gap:16px}
+.foot-links a{font-size:12px;color:var(--muted);text-decoration:none;
+  transition:color .15s}
+.foot-links a:hover{color:var(--txt)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ── Nav ────────────────────────────────────────────────────────────── -->
+  <nav>
+    <div class="nav-brand">
+      <span class="nav-logo" id="nav-logo">🍎</span>
+      <span class="nav-name">Murari Control</span>
+      <span class="nav-badge">Beta</span>
+    </div>
+    <div class="nav-links">
+      <a href="#download">Download</a>
+      <a href="#steps">Setup</a>
+      <a href="#features">Features</a>
+      <a href="https://github.com/YOUR_USERNAME/murari-maccontrol" target="_blank">GitHub</a>
+    </div>
+  </nav>
+
+  <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+  <section class="hero" id="top">
+    <div class="hero-eyebrow">Zero dependencies · Local network only</div>
+    <h1>
+      Control your<br>
+      <span class="grad-mac">Mac</span> or <span class="grad-win">Windows PC</span><br>
+      from your phone
+    </h1>
+    <p class="hero-sub">
+      No app store. No account. No cloud.<br>
+      <strong>Just open a URL in your browser — it works.</strong>
+    </p>
+    <div class="hero-pills">
+      <span class="pill">📱 iPhone &amp; Android</span>
+      <span class="pill">🔒 HTTPS · PIN auth</span>
+      <span class="pill">🏠 Local WiFi only</span>
+      <span class="pill">⚡ Zero pip installs</span>
+      <span class="pill">🆓 Free &amp; open source</span>
+    </div>
+
+    <!-- OS detection banner -->
+    <div id="os-banner">
+      <span class="os-ico" id="os-ico">💻</span>
+      <span class="os-txt">Detected: <span class="os-hi" id="os-name">your OS</span></span>
+      <span>→</span>
+      <span class="os-txt">your download is <span class="os-hi" id="os-rec">highlighted below</span></span>
+    </div>
+  </section>
+
+  <!-- ── Download cards ──────────────────────────────────────────────────── -->
+  <section id="download">
+    <div class="dl-grid">
+
+      <!-- Mac card -->
+      <div class="dl-card mac" id="card-mac">
+        <div class="rec-badge">✓ Recommended for you</div>
+        <span class="dl-icon">🍎</span>
+        <div class="dl-title dl-mac-color">MacControl</div>
+        <div class="dl-subtitle">For macOS 11 (Big Sur) and later</div>
+        <ul class="dl-features">
+          <li>iPhone / Safari web app</li>
+          <li>Spotify with live album art</li>
+          <li>Wake &amp; unlock via AppleScript</li>
+          <li>Bluetooth device management</li>
+          <li>Safari remote control &amp; JS runner</li>
+          <li>App icons, quit &amp; force-quit</li>
+        </ul>
+        <a class="dl-btn mac" id="btn-mac"
+           href="https://github.com/YOUR_USERNAME/murari-maccontrol/releases/latest/download/murari-maccontrol-latest.zip">
+          <span class="dl-btn-ico">⬇</span> Download for macOS
+        </a>
+        <div class="dl-req">
+          Requires Python 3 (pre-installed on macOS)<br>
+          <a href="https://github.com/YOUR_USERNAME/murari-maccontrol/tree/main">View source (main branch)</a>
+        </div>
+      </div>
+
+      <!-- Windows card -->
+      <div class="dl-card win" id="card-win">
+        <div class="rec-badge">✓ Recommended for you</div>
+        <span class="dl-icon">🪟</span>
+        <div class="dl-title dl-win-color">WinControl</div>
+        <div class="dl-subtitle">For Windows 10 and Windows 11</div>
+        <ul class="dl-features">
+          <li>Android Chrome / any browser</li>
+          <li>Media keys via Windows VK codes</li>
+          <li>Lock, Sleep, Shutdown, Restart</li>
+          <li>Dark mode via registry toggle</li>
+          <li>App management via PowerShell</li>
+          <li>Toast notifications (Windows 10+)</li>
+        </ul>
+        <a class="dl-btn win" id="btn-win"
+           href="https://github.com/YOUR_USERNAME/murari-maccontrol/releases/latest/download/murari-wincontrol-latest.zip">
+          <span class="dl-btn-ico">⬇</span> Download for Windows
+        </a>
+        <div class="dl-req">
+          Requires Python 3.8+ — <a href="https://python.org/downloads" target="_blank">download here</a><br>
+          <a href="https://github.com/YOUR_USERNAME/murari-maccontrol/tree/windows">View source (windows branch)</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Setup steps ─────────────────────────────────────────────────────── -->
+  <section class="steps-section" id="steps">
+    <h2>Get started in 60 seconds</h2>
+    <p class="s-sub">Three steps — no install, no account, no configuration files to edit.</p>
+
+    <div class="steps-tabs">
+      <div class="steps-tab active" onclick="showSteps('mac', this)">🍎 macOS</div>
+      <div class="steps-tab" onclick="showSteps('win', this)">🪟 Windows</div>
+    </div>
+
+    <!-- Mac steps -->
+    <div class="steps-pane active" id="steps-mac">
+      <div class="step">
+        <div class="step-num mac">1</div>
+        <div class="step-body">
+          <div class="step-title">Download &amp; unzip</div>
+          <div class="step-desc">Download the zip above, unzip it anywhere — your Desktop, Documents, wherever you like.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num mac">2</div>
+        <div class="step-body">
+          <div class="step-title">Run setup in Terminal</div>
+          <div class="step-desc">Open Terminal, <code>cd</code> into the folder and run <code>bash setup.sh</code>. It will ask you to create a PIN, generate a TLS certificate, then start the server. The terminal prints your iPhone URL.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num mac">3</div>
+        <div class="step-body">
+          <div class="step-title">Open on iPhone (same WiFi)</div>
+          <div class="step-desc">Open the printed URL (e.g. <code>https://192.168.1.x:5001</code>) in Safari. First visit: tap <strong>Show Details → Visit This Website</strong> to trust the local cert. Optionally add to Home Screen via the Share button.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Windows steps -->
+    <div class="steps-pane" id="steps-win">
+      <div class="step">
+        <div class="step-num win">1</div>
+        <div class="step-body">
+          <div class="step-title">Download &amp; unzip</div>
+          <div class="step-desc">Download the zip above, right-click → Extract All. Put the folder anywhere you like.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num win">2</div>
+        <div class="step-body">
+          <div class="step-title">Double-click setup.bat</div>
+          <div class="step-desc">Double-click <code>setup.bat</code>. An interactive menu lets you choose which features to enable. It checks for Python, creates your PIN, generates a TLS cert, then starts the server. Your Android URL is printed in the window.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num win">3</div>
+        <div class="step-body">
+          <div class="step-title">Open on Android (same WiFi)</div>
+          <div class="step-desc">Open the printed URL in Chrome on Android. First visit: tap <strong>Advanced → Proceed</strong> to trust the local cert. Add to Home Screen via Chrome's menu → <strong>Add to Home screen</strong> for a full-screen app feel.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ────────────────────────────────────────────────────────── -->
+  <section class="features-section" id="features">
+    <h2>Everything you can control</h2>
+    <p class="feat-sub">Both versions share the same phone UI — features adapt automatically based on what your computer supports.</p>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="f-ico">🎵</div>
+        <div class="f-name">Media</div>
+        <div class="f-desc">Play/pause, next, previous, volume, brightness</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">🎧</div>
+        <div class="f-name">Spotify</div>
+        <div class="f-desc">Live track, artist, album art (Mac: full API; Windows: window title)</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">📱</div>
+        <div class="f-name">App Manager</div>
+        <div class="f-desc">Real icons, launch, switch, quit, force-quit</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">📸</div>
+        <div class="f-name">Screenshot</div>
+        <div class="f-desc">Capture and view your screen on the phone</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">🔒</div>
+        <div class="f-name">Unlock / Power</div>
+        <div class="f-desc">Mac: wake &amp; unlock. Windows: lock, sleep, shutdown, restart</div>
+        <div class="f-plat"><span class="plat-tag mac">Mac</span><span class="plat-tag win">Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">🌙</div>
+        <div class="f-name">Dark Mode</div>
+        <div class="f-desc">Toggle system appearance instantly</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">📋</div>
+        <div class="f-name">Clipboard</div>
+        <div class="f-desc">Read from and push text to your computer clipboard</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">🔔</div>
+        <div class="f-name">Notifications</div>
+        <div class="f-desc">Send notifications to your computer from your phone</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">⌨️</div>
+        <div class="f-name">Terminal</div>
+        <div class="f-desc">Run shell / PowerShell commands, view output</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">🌐</div>
+        <div class="f-name">Safari Control</div>
+        <div class="f-desc">Navigate, new tab, execute JavaScript</div>
+        <div class="f-plat"><span class="plat-tag mac">Mac only</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">🔵</div>
+        <div class="f-name">Bluetooth</div>
+        <div class="f-desc">List, connect and disconnect paired devices</div>
+        <div class="f-plat"><span class="plat-tag mac">Mac only</span></div>
+      </div>
+      <div class="feat-card">
+        <div class="f-ico">⚡</div>
+        <div class="f-name">Brightness</div>
+        <div class="f-desc">Mac: system keys. Windows: WMI (laptop panels)</div>
+        <div class="f-plat"><span class="plat-tag both">Mac + Windows</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Security ────────────────────────────────────────────────────────── -->
+  <section class="sec-section">
+    <div>
+      <h2>🔒 Security</h2>
+      <div class="sec-row">
+        <span class="sec-ico">🏠</span>
+        <div class="sec-text"><strong>Local network only</strong>Server binds to port 5001 on your LAN. Nothing leaves your home network.</div>
+      </div>
+      <div class="sec-row">
+        <span class="sec-ico">🔐</span>
+        <div class="sec-text"><strong>HTTPS + self-signed cert</strong>All traffic is encrypted. A unique TLS certificate is generated on your machine on first run.</div>
+      </div>
+      <div class="sec-row">
+        <span class="sec-ico">🔑</span>
+        <div class="sec-text"><strong>PBKDF2-SHA256 PIN</strong>Your PIN is hashed with 200,000 rounds. The raw PIN is never stored anywhere.</div>
+      </div>
+    </div>
+    <div>
+      <h2>🛡 Privacy</h2>
+      <div class="sec-row">
+        <span class="sec-ico">☁</span>
+        <div class="sec-text"><strong>Zero cloud</strong>No analytics, no telemetry, no servers, no accounts. Everything runs on your machine.</div>
+      </div>
+      <div class="sec-row">
+        <span class="sec-ico">🔓</span>
+        <div class="sec-text"><strong>Open source</strong>Every line of code is on GitHub. Read it, audit it, fork it.</div>
+      </div>
+      <div class="sec-row">
+        <span class="sec-ico">🚫</span>
+        <div class="sec-text"><strong>Rate limiting</strong>5 failed PIN attempts triggers a 5-minute lockout per IP address.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="foot-brand">
+      Built by <strong>Murari Systems</strong> · MIT License · Zero dependencies
+    </div>
+    <div class="foot-links">
+      <a href="https://github.com/YOUR_USERNAME/murari-maccontrol" target="_blank">GitHub</a>
+      <a href="https://github.com/YOUR_USERNAME/murari-maccontrol/releases" target="_blank">Releases</a>
+      <a href="https://github.com/YOUR_USERNAME/murari-maccontrol/blob/main/CONTRIBUTING.md" target="_blank">Contribute</a>
+      <a href="https://github.com/YOUR_USERNAME/murari-maccontrol/issues" target="_blank">Issues</a>
+    </div>
+  </footer>
+
+</div><!-- /wrap -->
+
+<script>
+// ── OS detection ──────────────────────────────────────────────────────────────
+(function() {
+  const ua  = navigator.userAgent || '';
+  const plat = (navigator.platform || navigator.userAgentData?.platform || '').toLowerCase();
+
+  const isMac = /mac/i.test(plat) || /macintosh|mac os x/i.test(ua);
+  const isWin = /win/i.test(plat) || /windows/i.test(ua);
+
+  const cardMac = document.getElementById('card-mac');
+  const cardWin = document.getElementById('card-win');
+  const banner  = document.getElementById('os-banner');
+  const osIco   = document.getElementById('os-ico');
+  const osName  = document.getElementById('os-name');
+  const navLogo = document.getElementById('nav-logo');
+
+  if (isMac) {
+    cardMac.classList.add('recommended');
+    osIco.textContent  = '🍎';
+    osName.textContent = 'macOS';
+    navLogo.textContent = '🍎';
+    // Auto-switch setup steps to Mac
+    showSteps('mac', document.querySelector('.steps-tab'));
+  } else if (isWin) {
+    cardWin.classList.add('recommended');
+    osIco.textContent  = '🪟';
+    osName.textContent = 'Windows';
+    navLogo.textContent = '🪟';
+    // Auto-switch setup steps to Windows
+    const winTab = document.querySelectorAll('.steps-tab')[1];
+    showSteps('win', winTab);
+  } else {
+    // Unknown — show both equally
+    osIco.textContent  = '💻';
+    osName.textContent = 'your OS';
+    document.getElementById('os-rec').textContent = 'choose below';
+  }
+
+  // Fade in the banner
+  setTimeout(() => banner.classList.add('show'), 200);
+})();
+
+// ── Setup steps tab switcher ──────────────────────────────────────────────────
+function showSteps(platform, clickedTab) {
+  document.querySelectorAll('.steps-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.steps-pane').forEach(p => p.classList.remove('active'));
+  if (clickedTab) clickedTab.classList.add('active');
+  const pane = document.getElementById('steps-' + platform);
+  if (pane) pane.classList.add('active');
+}
+</script>
+</body>
+</html>
