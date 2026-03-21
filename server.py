@@ -63,6 +63,82 @@ def verify_pin(pin: str, salt: str, stored: str) -> bool:
     _, computed = hash_pin(pin, salt)
     return secrets.compare_digest(computed, stored)
 
+# ─── macOS Keychain ──────────────────────────────────────────────────────────
+# PIN credentials are stored in Keychain, NOT in config.json.
+# Keychain requires macOS authentication to read or delete, so clearing
+# config.json alone cannot bypass the PIN.
+
+_KC_SERVICE = "MSMacRemote"
+_KC_ACCOUNT = "pin_credentials"
+
+def _kc_store(salt: str, pin_hash: str, pin_length: int) -> bool:
+    """Write PIN credentials to macOS Keychain (creates or overwrites)."""
+    value = f"{salt}:{pin_hash}:{pin_length}"
+    r = subprocess.run(
+        ["security", "add-generic-password",
+         "-s", _KC_SERVICE, "-a", _KC_ACCOUNT, "-w", value, "-U"],
+        capture_output=True, timeout=10)
+    return r.returncode == 0
+
+def _kc_read() -> "tuple[str,str,int] | None":
+    """Read (salt, hash, length) from Keychain, or None if not found."""
+    r = subprocess.run(
+        ["security", "find-generic-password",
+         "-s", _KC_SERVICE, "-a", _KC_ACCOUNT, "-w"],
+        capture_output=True, text=True, timeout=10)
+    if r.returncode != 0:
+        return None
+    parts = r.stdout.strip().split(":", 2)
+    if len(parts) != 3:
+        return None
+    try:
+        return parts[0], parts[1], int(parts[2])
+    except (ValueError, IndexError):
+        return None
+
+def _kc_exists() -> bool:
+    return _kc_read() is not None
+
+def verify_pin_kc(pin: str) -> bool:
+    """Verify PIN against Keychain-stored credentials."""
+    creds = _kc_read()
+    if not creds:
+        # Fallback to legacy config.json credentials if Keychain empty
+        if "pin_salt" in _cfg and "pin_hash" in _cfg:
+            return verify_pin(pin, _cfg["pin_salt"], _cfg["pin_hash"])
+        return False
+    kc_salt, kc_hash, _ = creds
+    return verify_pin(pin, kc_salt, kc_hash)
+
+def get_pin_length() -> int:
+    """Return configured PIN length from Keychain (authoritative) or config fallback."""
+    creds = _kc_read()
+    if creds:
+        return creds[2]
+    return _cfg.get("pin_length", 6)
+
+def migrate_config_to_keychain():
+    """One-time migration: move PIN credentials from config.json into Keychain."""
+    if _kc_exists():
+        # Already in Keychain — strip any leftover PIN fields from config.json
+        changed = any(k in _cfg for k in ("pin_salt", "pin_hash", "pin_length"))
+        for k in ("pin_salt", "pin_hash", "pin_length"):
+            _cfg.pop(k, None)
+        if changed:
+            save_config()
+        return
+    if "pin_salt" in _cfg and "pin_hash" in _cfg:
+        salt = _cfg["pin_salt"]
+        ph   = _cfg["pin_hash"]
+        plen = _cfg.get("pin_length", 6)
+        if _kc_store(salt, ph, plen):
+            print("  ✓ PIN credentials migrated to macOS Keychain")
+            for k in ("pin_salt", "pin_hash", "pin_length"):
+                _cfg.pop(k, None)
+            save_config()
+        else:
+            print("  ⚠ Keychain migration failed — credentials remain in config.json")
+
 _sessions: dict = {}
 _attempts: dict = {}
 _state_lock = threading.Lock()
@@ -134,7 +210,8 @@ def save_config():
             json.dump(_cfg, f, indent=2)
 
 def setup_required() -> bool:
-    return "pin_hash" not in _cfg
+    # Keychain is the authoritative source — config.json tampering cannot bypass this
+    return not _kc_exists() and "pin_hash" not in _cfg
 
 def interactive_setup():
     print("\n  ┌──────────────────────────────────────┐")
@@ -149,11 +226,14 @@ def interactive_setup():
         else:
             print("  Must be 6–12 digits.")
     salt, h = hash_pin(pin)
-    _cfg["pin_salt"] = salt
-    _cfg["pin_hash"] = h
-    _cfg["pin_length"] = len(pin)
-    save_config()
-    print("  ✓ PIN saved (PBKDF2-SHA256, 200k rounds)\n")
+    if _kc_store(salt, h, len(pin)):
+        print("  ✓ PIN saved to macOS Keychain (PBKDF2-SHA256, 200k rounds)\n")
+    else:
+        print("  ⚠ Keychain unavailable — storing in config.json (less secure)")
+        _cfg["pin_salt"] = salt
+        _cfg["pin_hash"] = h
+        _cfg["pin_length"] = len(pin)
+        save_config()
 
 # ─── TLS ─────────────────────────────────────────────────────────────────────
 
@@ -369,15 +449,18 @@ def get_bluetooth() -> dict:
 
 # Bluetooth TTL cache — system_profiler blocks for 3–15s; cache 30s server-side
 _bt_cache: dict = {"data": None, "ts": 0.0}
+_bt_lock  = threading.Lock()
 _BT_TTL = 30.0
 
 def get_bluetooth_cached() -> dict:
-    now = time.time()
-    if _bt_cache["data"] and now - _bt_cache["ts"] < _BT_TTL:
-        return _bt_cache["data"]
+    with _bt_lock:
+        now = time.time()
+        if _bt_cache["data"] and now - _bt_cache["ts"] < _BT_TTL:
+            return _bt_cache["data"]
     result = get_bluetooth()
-    _bt_cache["data"] = result
-    _bt_cache["ts"] = now
+    with _bt_lock:
+        _bt_cache["data"] = result
+        _bt_cache["ts"] = time.time()
     return result
 
 def _blueutil() -> Optional[str]:
@@ -848,7 +931,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/auth/status":
             self.send_json({"ok":True,"setup_required":setup_required(),
                             "authenticated":self.authed(),"fingerprint":get_fingerprint(),
-                            "pin_length":_cfg.get("pin_length", 6)})
+                            "pin_length":get_pin_length()})
         elif path == "/api/status":       self.send_json(get_status())
         elif path == "/api/battery":      self.send_json(get_battery())
         elif path == "/api/bluetooth":    self.send_json(get_bluetooth_cached())
@@ -892,12 +975,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok":False,"error":"Server not set up"},400)
                 return
             pin = data.get("pin","")
-            if verify_pin(pin, _cfg["pin_salt"], _cfg["pin_hash"]):
+            if verify_pin_kc(pin):
                 clear_fail(ip)
                 self.send_json({"ok":True,"token":create_session()})
             else:
                 record_fail(ip)
-                left = max(0, 5 - _attempts.get(ip,[0,0])[0])
+                with _state_lock:
+                    left = max(0, 5 - _attempts.get(ip,[0,0])[0])
                 self.send_json({"ok":False,"error":f"Wrong PIN. {left} attempt(s) left."},401)
             return
 
@@ -910,9 +994,11 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok":False,"error":"PIN must be 6–12 digits"},400)
                 return
             salt, h = hash_pin(pin)
-            _cfg["pin_salt"] = salt; _cfg["pin_hash"] = h
-            _cfg["pin_length"] = len(pin)
-            save_config()
+            if not _kc_store(salt, h, len(pin)):
+                # Keychain unavailable — fall back to config.json
+                _cfg["pin_salt"] = salt; _cfg["pin_hash"] = h
+                _cfg["pin_length"] = len(pin)
+                save_config()
             self.send_json({"ok":True,"token":create_session()})
             return
 
@@ -973,18 +1059,20 @@ class Handler(BaseHTTPRequestHandler):
         # ── Auth management ──
         elif path == "/api/auth/change_pin":
             op = data.get("old_pin",""); np = data.get("new_pin","")
-            if not verify_pin(op, _cfg["pin_salt"], _cfg["pin_hash"]):
+            if not verify_pin_kc(op):
                 self.send_json({"ok":False,"error":"Current PIN incorrect"})
             elif not (np.isdigit() and 6 <= len(np) <= 12):
                 self.send_json({"ok":False,"error":"New PIN: 6–12 digits"})
             else:
                 salt, h = hash_pin(np)
-                _cfg["pin_salt"] = salt; _cfg["pin_hash"] = h
-                _cfg["pin_length"] = len(np)
-                save_config()
+                if not _kc_store(salt, h, len(np)):
+                    _cfg["pin_salt"] = salt; _cfg["pin_hash"] = h
+                    _cfg["pin_length"] = len(np)
+                    save_config()
                 self.send_json({"ok":True})
         elif path == "/api/auth/logout":
-            _sessions.pop(self.token(), None)
+            with _state_lock:
+                _sessions.pop(self.token(), None)
             self.send_json({"ok":True})
         else:
             self.send_json({"ok":False,"error":"Not found"},404)
@@ -1003,6 +1091,7 @@ if __name__ == "__main__":
     PORT = int(os.environ.get("MSMR_PORT", 5001))
     ip = get_local_ip()
     load_config()
+    migrate_config_to_keychain()
     if setup_required():
         interactive_setup()
     use_https = generate_cert(ip)
