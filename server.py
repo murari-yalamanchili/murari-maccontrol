@@ -6,7 +6,7 @@ Clipboard · Notifications · Screenshot · Dark Mode
 Run: python3 server.py
 """
 
-import subprocess, json, socket, os, time, ssl, hashlib, secrets, re, urllib.request, base64, threading, tempfile
+import subprocess, json, socket, os, time, ssl, hashlib, secrets, re, urllib.request, base64
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Optional
@@ -65,61 +65,50 @@ def verify_pin(pin: str, salt: str, stored: str) -> bool:
 
 _sessions: dict = {}
 _attempts: dict = {}
-_state_lock = threading.Lock()
 
 def create_session() -> str:
     token = secrets.token_hex(32)
-    with _state_lock:
-        _sessions[token] = time.time() + 86_400
-        now = time.time()
-        for t in [k for k, v in list(_sessions.items()) if v < now]:
-            _sessions.pop(t, None)
+    _sessions[token] = time.time() + 86_400
+    now = time.time()
+    for t in [k for k, v in _sessions.items() if v < now]:
+        _sessions.pop(t, None)
     return token
 
 def valid_session(token: str) -> bool:
     """Validate and touch (extend) session expiry on every authenticated request."""
-    if not token:
+    if not token or token not in _sessions:
         return False
-    with _state_lock:
-        if token not in _sessions:
-            return False
-        if time.time() > _sessions[token]:
-            _sessions.pop(token, None)
-            return False
-        # Touch: extend 24 h from now on every valid use
-        _sessions[token] = time.time() + 86_400
+    if time.time() > _sessions[token]:
+        _sessions.pop(token, None)
+        return False
+    # Touch: extend 24 h from now on every valid use
+    _sessions[token] = time.time() + 86_400
     return True
 
 def rate_ok(ip: str) -> bool:
-    with _state_lock:
-        rec = _attempts.get(ip)
-        if not rec:
-            return True
-        count, since = rec
-        elapsed = time.time() - since
-        if elapsed >= 300:
-            _attempts.pop(ip, None)
-            return True
-        if count >= 5:
-            return False
+    rec = _attempts.get(ip)
+    if not rec:
+        return True
+    count, since = rec
+    if count >= 5 and time.time() - since < 300:
+        return False
+    if time.time() - since >= 300:
+        _attempts.pop(ip, None)
     return True
 
 def record_fail(ip: str):
-    with _state_lock:
-        rec = _attempts.get(ip)
-        if rec:
-            rec[0] += 1
-        else:
-            _attempts[ip] = [1, time.time()]
+    rec = _attempts.get(ip)
+    if rec:
+        rec[0] += 1
+    else:
+        _attempts[ip] = [1, time.time()]
 
 def clear_fail(ip: str):
-    with _state_lock:
-        _attempts.pop(ip, None)
+    _attempts.pop(ip, None)
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
 _cfg: dict = {}
-_cfg_lock  = threading.Lock()
 
 def load_config():
     global _cfg
@@ -129,9 +118,8 @@ def load_config():
     return _cfg
 
 def save_config():
-    with _cfg_lock:
-        with open(CONFIG_FILE, "w") as f:
-            json.dump(_cfg, f, indent=2)
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(_cfg, f, indent=2)
 
 def setup_required() -> bool:
     return "pin_hash" not in _cfg
@@ -141,13 +129,13 @@ def interactive_setup():
     print("  │  First Run — Create your access PIN  │")
     print("  └──────────────────────────────────────┘")
     while True:
-        pin = input("  PIN (6–12 digits): ").strip()
-        if pin.isdigit() and 6 <= len(pin) <= 12:
+        pin = input("  PIN (4–12 digits): ").strip()
+        if pin.isdigit() and 4 <= len(pin) <= 12:
             if input("  Confirm PIN: ").strip() == pin:
                 break
             print("  Mismatch.")
         else:
-            print("  Must be 6–12 digits.")
+            print("  Must be 4–12 digits.")
     salt, h = hash_pin(pin)
     _cfg["pin_salt"] = salt
     _cfg["pin_hash"] = h
@@ -520,13 +508,13 @@ end tell''')
 def safari_navigate(url: str) -> dict:
     if url and not url.startswith("http"):
         url = "https://" + url
-    safe = url.replace("\\", "\\\\").replace('"', '\\"')
+    safe = url.replace('"', '\\"')
     return run_script(f'tell application "Safari" to set URL of front document to "{safe}"')
 
 def safari_new_tab(url: str = "") -> dict:
     if url and not url.startswith("http"):
         url = "https://" + url
-    safe = url.replace("\\", "\\\\").replace('"', '\\"')
+    safe = url.replace('"', '\\"')
     return run_script(f'''
 tell application "Safari"
     activate
@@ -576,7 +564,7 @@ def type_text(text: str) -> dict:
     return run_script(f'tell application "System Events" to keystroke "{safe}"')
 
 def open_url_mac(url: str) -> dict:
-    safe = url.replace("\\", "\\\\").replace('"', '\\"')
+    safe = url.replace('"','\\"')
     return run_script(f'open location "{safe}"')
 
 def terminal_run_silent(cmd: str) -> dict:
@@ -627,22 +615,22 @@ def send_notification(title: str, message: str, subtitle: str = "") -> dict:
 
 def screenshot_b64() -> dict:
     """Capture screen as JPEG, resize to max 1280 px, return base64."""
-    fd, path = tempfile.mkstemp(suffix=".jpg", prefix="msmr_ss_")
-    os.close(fd)
+    path = "/tmp/msmr_ss.jpg"
     try:
         r = run_shell(["screencapture", "-x", "-t", "jpg", path])
-        if not os.path.exists(path) or os.path.getsize(path) == 0:
+        if not os.path.exists(path):
             return {"ok": False, "error": r.get("error", "Capture failed — is screen locked?")}
         # Resize to max 1280px (keeps aspect ratio), reduces transfer size significantly
         run_shell(["sips", "-Z", "1280", path])
         with open(path, "rb") as f:
             data = base64.b64encode(f.read()).decode()
+        os.unlink(path)
         return {"ok": True, "data": data, "mime": "image/jpeg"}
     except Exception as e:
+        if os.path.exists(path):
+            try: os.unlink(path)
+            except: pass
         return {"ok": False, "error": str(e)}
-    finally:
-        try: os.unlink(path)
-        except Exception: pass
 
 # ─── Dark Mode ───────────────────────────────────────────────────────────────
 
@@ -714,19 +702,19 @@ def get_app_icon_b64(app_name: str) -> dict:
                     break
         if not os.path.exists(icon_path):
             return {"ok": False, "error": "Icon file not found"}
-        fd, tmp = tempfile.mkstemp(suffix=".png", prefix="msmr_ico_")
-        os.close(fd)
+        safe_name = app_name.replace(" ", "_").replace("/", "_")
+        tmp = f"/tmp/msmr_ico_{safe_name}.png"
+        run_shell(["sips", "-s", "format", "png", "--resampleWidth", "60",
+                   icon_path, "--out", tmp], timeout=10)
+        if not os.path.exists(tmp):
+            return {"ok": False, "error": "sips conversion failed"}
+        with open(tmp, "rb") as f:
+            data = base64.b64encode(f.read()).decode()
         try:
-            run_shell(["sips", "-s", "format", "png", "--resampleWidth", "60",
-                       icon_path, "--out", tmp], timeout=10)
-            if not os.path.exists(tmp) or os.path.getsize(tmp) == 0:
-                return {"ok": False, "error": "sips conversion failed"}
-            with open(tmp, "rb") as f:
-                data = base64.b64encode(f.read()).decode()
-            return {"ok": True, "data": data, "mime": "image/png"}
-        finally:
-            try: os.unlink(tmp)
-            except Exception: pass
+            os.unlink(tmp)
+        except Exception:
+            pass
+        return {"ok": True, "data": data, "mime": "image/png"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -817,7 +805,7 @@ class Handler(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length",0))
         raw = self.rfile.read(n)
         try: return json.loads(raw) if raw else {}
-        except Exception: return {}
+        except: return {}
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -874,7 +862,7 @@ class Handler(BaseHTTPRequestHandler):
             else: self.send_json({"ok":False,"error":f"Unknown: {a}"},400)
         elif path == "/api/volume":
             try: self.send_json(set_volume(int(params.get("level",["50"])[0])))
-            except Exception: self.send_json({"ok":False,"error":"Invalid"},400)
+            except: self.send_json({"ok":False,"error":"Invalid"},400)
         else:
             self.send_json({"ok":False,"error":"Not found"},404)
 
@@ -906,8 +894,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok":False,"error":"Already configured"},400)
                 return
             pin = data.get("pin","")
-            if not (pin.isdigit() and 6 <= len(pin) <= 12):
-                self.send_json({"ok":False,"error":"PIN must be 6–12 digits"},400)
+            if not (pin.isdigit() and 4 <= len(pin) <= 12):
+                self.send_json({"ok":False,"error":"PIN must be 4–12 digits"},400)
                 return
             salt, h = hash_pin(pin)
             _cfg["pin_salt"] = salt; _cfg["pin_hash"] = h
@@ -943,7 +931,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(run_script(f'tell application "{name}" to activate'))
         elif path == "/api/apps/launch":
             p = data.get("path","")
-            n = data.get("name","").replace('"', '\\"')
+            n = data.get("name","")
             if p.startswith("/"):
                 self.send_json(run_shell(["open", p]))
             else:
@@ -975,12 +963,11 @@ class Handler(BaseHTTPRequestHandler):
             op = data.get("old_pin",""); np = data.get("new_pin","")
             if not verify_pin(op, _cfg["pin_salt"], _cfg["pin_hash"]):
                 self.send_json({"ok":False,"error":"Current PIN incorrect"})
-            elif not (np.isdigit() and 6 <= len(np) <= 12):
-                self.send_json({"ok":False,"error":"New PIN: 6–12 digits"})
+            elif not (np.isdigit() and 4 <= len(np) <= 12):
+                self.send_json({"ok":False,"error":"New PIN: 4–12 digits"})
             else:
                 salt, h = hash_pin(np)
                 _cfg["pin_salt"] = salt; _cfg["pin_hash"] = h
-                _cfg["pin_length"] = len(np)
                 save_config()
                 self.send_json({"ok":True})
         elif path == "/api/auth/logout":
@@ -1000,7 +987,7 @@ def get_local_ip():
         s.close()
 
 if __name__ == "__main__":
-    PORT = int(os.environ.get("MSMR_PORT", 5001))
+    PORT = 5001
     ip = get_local_ip()
     load_config()
     if setup_required():

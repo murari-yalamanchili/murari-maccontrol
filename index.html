@@ -40,15 +40,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);displa
 .pin-dot{width:12px;height:12px;border-radius:50%;background:var(--brd2);
   transition:background .15s,transform .15s}
 .pin-dot.filled{background:var(--a1);transform:scale(1.15)}
-@keyframes shake-dots{
-  0%,100%{transform:translateX(0)}
-  15%{transform:translateX(-8px)}
-  30%{transform:translateX(7px)}
-  45%{transform:translateX(-6px)}
-  60%{transform:translateX(5px)}
-  75%{transform:translateX(-3px)}
-  90%{transform:translateX(2px)}
-}
 /* Numpad */
 .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:100%;max-width:290px}
 .np-btn{
@@ -535,7 +526,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     <!-- dots injected by JS based on actual PIN length -->
   </div>
 
-  <div class="lg-setup-label" id="lg-setup-lbl">Choose a PIN (6–12 digits)</div>
+  <div class="lg-setup-label" id="lg-setup-lbl">Choose a PIN (4–12 digits)</div>
   <div class="lg-fp" id="lg-fp"></div>
 
   <div class="numpad" id="numpad">
@@ -999,7 +990,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         <div class="clbl">Change PIN</div>
         <div style="display:flex;flex-direction:column;gap:7px">
           <input type="password" class="inp f2" id="cp-old" placeholder="Current PIN" style="font-size:14px;letter-spacing:3px">
-          <input type="password" class="inp f2" id="cp-new" placeholder="New PIN (6-12 digits)" style="font-size:14px;letter-spacing:3px">
+          <input type="password" class="inp f2" id="cp-new" placeholder="New PIN (4-12 digits)" style="font-size:14px;letter-spacing:3px">
           <button class="btn btn-full a2" onclick="changePIN()">Change PIN</button>
         </div>
         <div class="unl-res" id="cp-res"></div>
@@ -1052,7 +1043,7 @@ async function initAuth() {
     pinLength = 0;
     buildDots(0);
     document.getElementById('lg-setup-lbl').style.display = 'block';
-    document.getElementById('lg-sub').textContent = 'Create a 6–12 digit PIN to protect your Mac.';
+    document.getElementById('lg-sub').textContent = 'Create a PIN to protect your Mac.';
     if (d.fingerprint) {
       const fp = document.getElementById('lg-fp');
       fp.textContent = '🔒 Cert SHA-256:\n' + d.fingerprint;
@@ -1071,10 +1062,9 @@ async function initAuth() {
 
 function buildDots(n) {
   // n=0 means unknown — we'll show dots dynamically as the user types
-  // Always display at least 6 dots so PIN length isn't revealed to observers
   const container = document.getElementById('pin-dots');
   container.innerHTML = '';
-  const slots = n > 0 ? Math.max(6, n) : 12;
+  const slots = n > 0 ? n : 12;
   for (let i = 0; i < slots; i++) {
     const dot = document.createElement('div');
     dot.className = 'pin-dot';
@@ -1108,9 +1098,8 @@ function npDel() { haptic(); pinBuf = pinBuf.slice(0,-1); updateDots(); }
 
 function updateDots() {
   if (pinLength > 0) {
-    // Show max(6, pinLength) dots so observers can't tell how short the PIN is
-    const displayed = Math.max(6, pinLength);
-    for (let i = 0; i < displayed; i++) {
+    // Known length: show exactly pinLength placeholder dots, fill the typed ones
+    for (let i = 0; i < pinLength; i++) {
       const el = document.getElementById('d' + i);
       if (el) { el.style.display = ''; el.classList.toggle('filled', i < pinBuf.length); }
     }
@@ -1138,7 +1127,7 @@ document.addEventListener('keydown', e => {
 });
 
 async function submitPIN() {
-  if (pinBuf.length < (setupMode ? 6 : 4)) { lgErr(setupMode ? 'PIN needs at least 6 digits' : 'Enter your PIN'); return; }
+  if (pinBuf.length < 4) { lgErr('PIN needs at least 4 digits'); return; }
   lgErr('');
   if (setupMode) { await handleSetup(); }
   else { await handleLogin(); }
@@ -1175,7 +1164,7 @@ async function handleSetup() {
     pinBuf = ''; setupFirst = ''; setupStep = 0;
     pinLength = 0;               // back to unknown length for fresh entry
     buildDots(0); updateDots();
-    document.getElementById('lg-setup-lbl').textContent = 'Choose a PIN (6–12 digits)';
+    document.getElementById('lg-setup-lbl').textContent = 'Choose a PIN (4–12 digits)';
     return;
   }
   const pin = pinBuf; pinBuf = ''; updateDots();
@@ -1192,9 +1181,9 @@ async function handleSetup() {
 
 function shakeDots() {
   const el = document.getElementById('pin-dots');
-  el.style.animation = 'none';
-  void el.offsetWidth; // force reflow to restart animation
-  el.style.animation = 'shake-dots .45s cubic-bezier(.36,.07,.19,.97) both';
+  el.style.transition='none'; el.style.transform='translateX(8px)';
+  setTimeout(()=>{el.style.transition='transform .1s';el.style.transform='translateX(-8px)'},60);
+  setTimeout(()=>{el.style.transform=''},160);
 }
 function lgErr(m) { document.getElementById('lg-err').textContent = m; }
 
@@ -1426,7 +1415,7 @@ function startClock() {
     if (de) de.textContent = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
   }
   tick();
-  setInterval(tick, 1000);
+  setInterval(tick, 10000);
 }
 
 // ─── Dashboard ────────────────────────────────────────
