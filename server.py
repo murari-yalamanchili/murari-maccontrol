@@ -1025,15 +1025,26 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/safari/js":
             self.send_json(safari_js(data.get("js","")))
         elif path == "/api/apps/focus":
-            name = data.get("name","").replace('"','\\"')
-            self.send_json(run_script(f'tell application "{name}" to activate'))
+            name = data.get("name","")
+            safe = name.replace('"', '\\"')
+            # open -a is the most reliable way to bring an app to the foreground
+            # (handles hidden/minimized state; activate alone can be blocked by macOS)
+            r = run_shell(["open", "-a", name])
+            if not r["ok"]:
+                # Fallback: AppleScript activate + reopen (unminimizes from Dock)
+                r = run_script(f'tell application "{safe}"\nactivate\nreopen\nend tell')
+            self.send_json(r)
         elif path == "/api/apps/launch":
             p = data.get("path","")
-            n = data.get("name","").replace('"', '\\"')
+            name = data.get("name","")
+            safe = name.replace('"', '\\"')
             if p.startswith("/"):
                 self.send_json(run_shell(["open", p]))
             else:
-                self.send_json(run_script(f'tell application "{n}" to activate'))
+                r = run_shell(["open", "-a", name])
+                if not r["ok"]:
+                    r = run_script(f'tell application "{safe}"\nactivate\nreopen\nend tell')
+                self.send_json(r)
         elif path == "/api/apps/quit":
             n = data.get("name","").replace('"','\\"')
             self.send_json(run_script(f'tell application "{n}" to quit'))

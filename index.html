@@ -1466,6 +1466,14 @@ async function loadIconsFor(apps, refreshFn) {
 
 // ─── Apps ─────────────────────────────────────────────
 
+// data-* tile helpers — avoids inline onclick string-escaping bugs
+function tileFocus(el)       { focusAppImmediate(el.dataset.name); }
+function tileOpenMenu(el, r) { openAppMenu(el.dataset.name, el.dataset.emoji, r); }
+function tileClick(el) {
+  if (el.dataset.running === 'true') focusAppImmediate(el.dataset.name);
+  else launchAppImmediate(el.dataset.path, el.dataset.name);
+}
+
 // Immediate focus (running app tile tap)
 async function focusAppImmediate(name) {
   haptic();
@@ -1525,7 +1533,7 @@ function renderDashRunning(apps) {
     const iconContent = cached
       ? `<img src="${cached}" alt="" style="width:46px;height:46px;border-radius:13px;object-fit:cover">`
       : `<span style="font-size:22px">${a.emoji||'📱'}</span>`;
-    return `<div class="dash-app-chip" onclick="openAppMenu('${esc(a.name)}','${esc(a.emoji||'📱')}',true)">
+    return `<div class="dash-app-chip" data-name="${esc(a.name)}" data-emoji="${esc(a.emoji||'📱')}" onclick="tileOpenMenu(this,true)">
       <div class="dac-icon">${iconContent}<div class="dac-dot"></div></div>
       <div class="dac-lbl">${esc(a.name)}</div>
     </div>`;
@@ -1542,10 +1550,10 @@ function renderRunning(apps) {
   }
   g.innerHTML = apps.map(a => {
     const ico = iconHtml(a, 34, 'app-icon-img');
-    // Tap tile = immediate focus; ⋯ button = management menu (quit/force-quit)
-    return `<div class="app-tile running" onclick="focusAppImmediate('${esc(a.name)}')">
+    // Use data-* attributes to safely carry app name — avoids &#39; decode bug in onclick
+    return `<div class="app-tile running" data-name="${esc(a.name)}" data-emoji="${esc(a.emoji||'📱')}" onclick="tileFocus(this)">
       <div class="run-dot"></div>
-      <button class="tile-mgr" onclick="event.stopPropagation();openAppMenu('${esc(a.name)}','${esc(a.emoji||'📱')}',true)" title="Manage">⋯</button>
+      <button class="tile-mgr" data-name="${esc(a.name)}" data-emoji="${esc(a.emoji||'📱')}" onclick="event.stopPropagation();tileOpenMenu(this,true)" title="Manage">⋯</button>
       ${ico}
       <span class="lbl">${esc(a.name)}</span>
     </div>`;
@@ -1560,14 +1568,13 @@ function renderInstalled(apps) {
   g.innerHTML = apps.map(a => {
     const isRunning = runSet.has(a.name.toLowerCase());
     const ico = iconHtml(a, 34, 'app-icon-img');
-    // Running = immediate focus + ⋯; not-running = launch
-    const onClick = isRunning
-      ? `focusAppImmediate('${esc(a.name)}')`
-      : `launchAppImmediate('${esc(a.path)}','${esc(a.name)}')`;
     const mgr = isRunning
-      ? `<button class="tile-mgr" onclick="event.stopPropagation();openAppMenu('${esc(a.name)}','${esc(a.emoji||'📱')}',true)" title="Manage">⋯</button>`
+      ? `<button class="tile-mgr" data-name="${esc(a.name)}" data-emoji="${esc(a.emoji||'📱')}" onclick="event.stopPropagation();tileOpenMenu(this,true)" title="Manage">⋯</button>`
       : '';
-    return `<div class="app-tile${isRunning?' running':''}" onclick="${onClick}">
+    // data-* carries name/path safely regardless of apostrophes or special chars
+    return `<div class="app-tile${isRunning?' running':''}"
+      data-name="${esc(a.name)}" data-path="${esc(a.path||'')}" data-emoji="${esc(a.emoji||'📱')}"
+      data-running="${isRunning}" onclick="tileClick(this)">
       ${isRunning?'<div class="run-dot"></div>':''}
       ${mgr}
       ${ico}
