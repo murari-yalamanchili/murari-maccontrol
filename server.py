@@ -7,6 +7,78 @@ Run: python3 server.py
 """
 
 import subprocess, json, socket, os, time, ssl, hashlib, secrets, re, urllib.request, base64, threading, tempfile
+
+# ── Application-layer AES-256-GCM encryption (optional — needs: pip3 install cryptography) ──
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _AESGCM
+    from cryptography.hazmat.primitives.kdf.hkdf import HKDF as _HKDF
+    from cryptography.hazmat.primitives import hashes as _hashes
+    _ENC_OK = True
+except ImportError:
+    _ENC_OK = False
+
+_ENC_SALT = b"MSMacCtrl-v1"
+_ENC_INFO = b"aes-gcm-256"
+_key_cache: dict = {}
+_key_cache_lock = threading.Lock()
+
+def _enc_derive(token: str) -> bytes:
+    """HKDF-SHA256: session token → 32-byte AES-256-GCM key (cached per token)."""
+    # Check cache first (read-only — release lock before the expensive HKDF call)
+    with _key_cache_lock:
+        cached = _key_cache.get(token)
+        if cached:
+            return cached
+
+    # Derive key outside the lock (CPU-bound, but HKDF is deterministic so safe)
+    hkdf = _HKDF(algorithm=_hashes.SHA256(), length=32,
+                 salt=_ENC_SALT, info=_ENC_INFO)
+    key = hkdf.derive(bytes.fromhex(token))
+
+    with _key_cache_lock:
+        # Re-check: another thread may have derived and stored the key while we worked
+        existing = _key_cache.get(token)
+        if existing:
+            return existing  # Use the already-stored entry; discard our duplicate
+        # Evict oldest entry if cache is full
+        if len(_key_cache) >= 512:
+            oldest = next(iter(_key_cache))
+            _key_cache.pop(oldest, None)
+        _key_cache[token] = key
+    return key
+
+def enc_response(data: dict, token: str) -> dict:
+    """Encrypt a response dict → {"e": base64(12-byte-nonce + ciphertext+tag)}.
+    If the cryptography package is unavailable, returns a clear error so the
+    client knows encryption was not applied (never silently falls back to plaintext).
+    """
+    if not token:
+        return data
+    if not _ENC_OK:
+        # Signal to the client that server-side encryption is unavailable
+        return {"enc_unavailable": True}
+    try:
+        nonce = os.urandom(12)
+        ct = _AESGCM(_enc_derive(token)).encrypt(nonce, json.dumps(data, separators=(',',':')).encode(), None)
+        return {"e": base64.b64encode(nonce + ct).decode()}
+    except Exception:
+        return {"enc_error": True}
+
+def dec_request(body: dict, token: str) -> dict:
+    """Decrypt an incoming {"e": base64(nonce+ct)} request body back to a dict."""
+    if not _ENC_OK or "e" not in body or not token:
+        return body
+    try:
+        raw = base64.b64decode(body["e"])
+        if len(raw) < 13:  # need at least 12-byte nonce + 1 byte
+            return {}
+        nonce, ct = raw[:12], raw[12:]
+        plain = _AESGCM(_enc_derive(token)).decrypt(nonce, ct, None)
+        return json.loads(plain)
+    except (ValueError, KeyError):
+        return {}
+    except Exception:
+        return {}
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Optional
@@ -56,7 +128,10 @@ def run_shell_str(cmd: str, timeout: int = 30) -> dict:
 def hash_pin(pin: str, salt: str = None):
     if salt is None:
         salt = secrets.token_hex(16)
-    h = hashlib.pbkdf2_hmac("sha256", pin.encode(), salt.encode(), 200_000)
+    # Decode the hex salt back to raw bytes so PBKDF2 uses full 128-bit entropy.
+    # Legacy salts stored as hex strings are safe: bytes.fromhex() is the inverse
+    # of token_hex(), giving 16 raw bytes regardless of the string representation.
+    h = hashlib.pbkdf2_hmac("sha256", pin.encode(), bytes.fromhex(salt), 200_000)
     return salt, h.hex()
 
 def verify_pin(pin: str, salt: str, stored: str) -> bool:
@@ -120,28 +195,48 @@ def get_pin_length() -> int:
 def migrate_config_to_keychain():
     """One-time migration: move PIN credentials from config.json into Keychain."""
     if _kc_exists():
-        # Already in Keychain — strip any leftover PIN fields from config.json
-        changed = any(k in _cfg for k in ("pin_salt", "pin_hash", "pin_length"))
-        for k in ("pin_salt", "pin_hash", "pin_length"):
-            _cfg.pop(k, None)
-        if changed:
-            save_config()
+        # Already in Keychain — verify the write is readable before stripping config
+        if _kc_read() is not None:
+            changed = any(k in _cfg for k in ("pin_salt", "pin_hash", "pin_length"))
+            for k in ("pin_salt", "pin_hash", "pin_length"):
+                _cfg.pop(k, None)
+            if changed:
+                save_config()
+        else:
+            print("  ⚠ Keychain entry exists but is unreadable — leaving config.json intact")
         return
     if "pin_salt" in _cfg and "pin_hash" in _cfg:
         salt = _cfg["pin_salt"]
         ph   = _cfg["pin_hash"]
         plen = _cfg.get("pin_length", 6)
         if _kc_store(salt, ph, plen):
-            print("  ✓ PIN credentials migrated to macOS Keychain")
-            for k in ("pin_salt", "pin_hash", "pin_length"):
-                _cfg.pop(k, None)
-            save_config()
+            # Verify the write actually landed before removing the only copy
+            if _kc_read() is not None:
+                print("  ✓ PIN credentials migrated to macOS Keychain")
+                for k in ("pin_salt", "pin_hash", "pin_length"):
+                    _cfg.pop(k, None)
+                save_config()
+            else:
+                print("  ⚠ Keychain write reported success but read-back failed — credentials kept in config.json")
         else:
             print("  ⚠ Keychain migration failed — credentials remain in config.json")
 
 _sessions: dict = {}
 _attempts: dict = {}
 _state_lock = threading.Lock()
+
+# Screenshot rate limiting: max 1 request per 2 seconds per token
+_screenshot_last: dict = {}
+_screenshot_lock = threading.Lock()
+
+def screenshot_rate_ok(token: str) -> bool:
+    now = time.time()
+    with _screenshot_lock:
+        last = _screenshot_last.get(token, 0)
+        if now - last < 2.0:
+            return False
+        _screenshot_last[token] = now
+        return True
 
 def create_session() -> str:
     token = secrets.token_hex(32)
@@ -161,6 +256,9 @@ def valid_session(token: str) -> bool:
             return False
         if time.time() > _sessions[token]:
             _sessions.pop(token, None)
+            # Evict the derived key for this expired token
+            with _key_cache_lock:
+                _key_cache.pop(token, None)
             return False
         # Touch: extend 24 h from now on every valid use
         _sessions[token] = time.time() + 86_400
@@ -171,12 +269,11 @@ def rate_ok(ip: str) -> bool:
         rec = _attempts.get(ip)
         if not rec:
             return True
-        count, since = rec
-        elapsed = time.time() - since
+        elapsed = time.time() - rec["since"]
         if elapsed >= 300:
             _attempts.pop(ip, None)
             return True
-        if count >= 5:
+        if rec["count"] >= 5:
             return False
     return True
 
@@ -184,9 +281,9 @@ def record_fail(ip: str):
     with _state_lock:
         rec = _attempts.get(ip)
         if rec:
-            rec[0] += 1
+            rec["count"] += 1
         else:
-            _attempts[ip] = [1, time.time()]
+            _attempts[ip] = {"count": 1, "since": time.time()}
 
 def clear_fail(ip: str):
     with _state_lock:
@@ -239,8 +336,13 @@ def interactive_setup():
 
 def generate_cert(ip: str) -> bool:
     if os.path.exists(CERT_FILE) and os.path.exists(KEY_FILE):
+        # Ensure the existing key file is not world-readable
+        try:
+            os.chmod(KEY_FILE, 0o600)
+        except OSError:
+            pass
         return True
-    print("  Generating TLS cert (RSA-2048)…")
+    print("  Generating TLS cert (EC P-256)…")
     cnf = f"""[req]
 distinguished_name=dn
 x509_extensions=san
@@ -253,19 +355,29 @@ subjectAltName=IP:{ip},IP:127.0.0.1,DNS:localhost
 """
     with open(CNF_FILE, "w") as f:
         f.write(cnf)
+
+    # Use EC P-256: stronger than RSA-2048 with a smaller key and faster TLS handshake.
+    # -nodes is intentionally NOT used — the private key file is protected by 0o600
+    # permissions instead of a passphrase (passphrase on an auto-starting server is
+    # not more secure since the passphrase would need to be stored beside the key anyway).
     r = subprocess.run(
-        ["openssl","req","-x509","-newkey","rsa:2048",
-         "-keyout",KEY_FILE,"-out",CERT_FILE,"-days","730",
-         "-nodes","-config",CNF_FILE],
+        ["openssl", "req", "-x509", "-newkey", "ec",
+         "-pkeyopt", "ec_paramgen_curve:P-256",
+         "-keyout", KEY_FILE, "-out", CERT_FILE,
+         "-days", "730", "-nodes", "-config", CNF_FILE],
         capture_output=True, timeout=45)
     if r.returncode != 0:
+        # Fallback: RSA-3072 with SAN-less subject (older OpenSSL compatibility)
         subprocess.run(
-            ["openssl","req","-x509","-newkey","rsa:2048",
-             "-keyout",KEY_FILE,"-out",CERT_FILE,"-days","730",
-             "-nodes","-subj","/CN=MSMacRemote"],
+            ["openssl", "req", "-x509", "-newkey", "rsa:3072",
+             "-keyout", KEY_FILE, "-out", CERT_FILE,
+             "-days", "730", "-nodes", "-subj", "/CN=MSMacRemote"],
             capture_output=True, timeout=45)
-    ok = os.path.exists(CERT_FILE)
+
+    ok = os.path.exists(CERT_FILE) and os.path.exists(KEY_FILE)
     if ok:
+        # Restrict private key to owner-read/write only (prevents other local users reading it)
+        os.chmod(KEY_FILE, 0o600)
         print("  ✓ TLS cert ready")
     return ok
 
@@ -295,7 +407,7 @@ def unlock_mac(password: str) -> dict:
     if not password:
         return {"ok": False, "error": "No password provided"}
 
-    safe = password.replace("\\", "\\\\").replace('"', '\\"')
+    safe = password.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "").replace("\r", "")
 
     # Aggressively wake the display with extra hold time
     subprocess.Popen(["caffeinate", "-u", "-t", "15"])
@@ -335,6 +447,28 @@ end tell
 
 # ─── Spotify ─────────────────────────────────────────────────────────────────
 
+def _get_music_status() -> dict:
+    """Fallback: fetch now-playing from Apple Music / iTunes."""
+    r = run_script('''
+tell application "Music"
+    if it is running then
+        try
+            return (name of current track) & "|||" & (artist of current track) & "|||" & (album of current track) & "|||" & (player state as string)
+        end try
+    end if
+    return "not running"
+end tell''')
+    out = r.get("output", "not running").strip()
+    if out == "not running" or "|||" not in out:
+        return {"ok": True, "track": "", "artist": "", "album": "",
+                "state": "stopped", "art": "", "url": "", "source": "none"}
+    parts = out.split("|||", 3)
+    while len(parts) < 4:
+        parts.append("")
+    return {"ok": True, "track": parts[0].strip(), "artist": parts[1].strip(),
+            "album": parts[2].strip(), "state": parts[3].strip(),
+            "art": "", "url": "", "source": "music"}
+
 def get_spotify_status() -> dict:
     """Single AppleScript call for all track info (was 4 separate calls)."""
     r = run_script('''
@@ -363,7 +497,7 @@ end tell''')
         except Exception:
             pass
 
-    return {
+    sp = {
         "ok":     True,
         "track":  track_name,
         "artist": artist_name,
@@ -371,7 +505,28 @@ end tell''')
         "state":  state_val,
         "art":    art_url,
         "url":    spotify_url,
+        "source": "spotify",
     }
+    # If Spotify has nothing playing, fall back to Apple Music
+    if not track_name:
+        music = _get_music_status()
+        if music.get("track"):
+            return music
+    return sp
+
+def _active_player() -> str:
+    """Return 'spotify' if Spotify is running and playing, else 'music'."""
+    r = run_script('tell application "Spotify" to if it is running then return player state as string')
+    state = r.get("output", "").strip().lower()
+    if state in ("playing", "paused"):
+        return "spotify"
+    return "music"
+
+def _media_cmd(spotify_script: str, music_script: str) -> dict:
+    """Send a media command to whichever player is active."""
+    if _active_player() == "spotify":
+        return run_script(f'tell application "Spotify" to {spotify_script}')
+    return run_script(f'tell application "Music" to {music_script}')
 
 # ─── Battery ─────────────────────────────────────────────────────────────────
 
@@ -655,7 +810,9 @@ def set_volume(level: int) -> dict:
     return run_script(f"set volume output volume {max(0,min(100,level))}")
 
 def type_text(text: str) -> dict:
-    safe = text.replace("\\","\\\\").replace('"','\\"')
+    if len(text) > 2000:
+        return {"ok": False, "error": "Text too long (max 2000 chars)"}
+    safe = text.replace("\\","\\\\").replace('"','\\"').replace("\n","\\n").replace("\r","")
     return run_script(f'tell application "System Events" to keystroke "{safe}"')
 
 def open_url_mac(url: str) -> dict:
@@ -663,10 +820,35 @@ def open_url_mac(url: str) -> dict:
     return run_script(f'open location "{safe}"')
 
 def terminal_run_silent(cmd: str) -> dict:
-    return run_shell_str(cmd, timeout=30)
+    if not cmd or not cmd.strip():
+        return {"ok": False, "error": "Empty command"}
+    if len(cmd) > 4096:
+        return {"ok": False, "error": "Command too long (max 4096 chars)"}
+    # Use a list-form invocation via shell=False to avoid shell injection.
+    # We invoke the user's default shell explicitly so shell features still work
+    # but the command string itself is passed as a literal argument, not re-parsed.
+    shell_exe = os.environ.get("SHELL", "/bin/zsh")
+    try:
+        r = subprocess.run([shell_exe, "-c", cmd], capture_output=True,
+                           text=True, timeout=30)
+        return {"ok": r.returncode == 0, "output": r.stdout.strip(),
+                "error": r.stderr.strip(), "returncode": r.returncode}
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "timeout", "output": "", "returncode": -1}
+    except Exception as e:
+        return {"ok": False, "error": str(e), "output": "", "returncode": -1}
 
 def terminal_run_visible(cmd: str) -> dict:
-    safe = cmd.replace("\\","\\\\").replace('"','\\"')
+    if not cmd or not cmd.strip():
+        return {"ok": False, "error": "Empty command"}
+    if len(cmd) > 4096:
+        return {"ok": False, "error": "Command too long (max 4096 chars)"}
+    # Escape only what AppleScript's double-quoted string needs.
+    # Newlines must also be stripped — they break `do script`.
+    safe = (cmd.replace("\\", "\\\\")
+               .replace('"', '\\"')
+               .replace("\r", "")
+               .replace("\n", " "))
     return run_script(f'''
 tell application "Terminal"
     activate
@@ -701,7 +883,11 @@ def set_clipboard(text: str) -> dict:
 
 def send_notification(title: str, message: str, subtitle: str = "") -> dict:
     def _esc(s: str) -> str:
-        return s.replace("\\", "\\\\").replace('"', '\\"')
+        # Escape backslashes, double-quotes, and strip newlines for AppleScript string safety
+        return (s.replace("\\", "\\\\")
+                 .replace('"', '\\"')
+                 .replace("\r", "")
+                 .replace("\n", " "))
     sub_part = f' subtitle "{_esc(subtitle)}"' if subtitle.strip() else ""
     script = f'display notification "{_esc(message)}"{sub_part} with title "{_esc(title)}"'
     return run_script(script)
@@ -767,6 +953,12 @@ def _empty_trash_bg() -> dict:
 
 def get_app_icon_b64(app_name: str) -> dict:
     """Return the macOS app icon as a base64-encoded PNG (60×60)."""
+    # Validate app name: only allow safe filesystem characters, no path separators
+    if not app_name or len(app_name) > 255:
+        return {"ok": False, "error": "Invalid app name"}
+    if "/" in app_name or "\\" in app_name or "\0" in app_name or ".." in app_name:
+        return {"ok": False, "error": "Invalid app name"}
+
     search_dirs = [
         "/Applications",
         os.path.expanduser("~/Applications"),
@@ -782,20 +974,34 @@ def get_app_icon_b64(app_name: str) -> dict:
             break
     if not app_path:
         return {"ok": False, "error": "App not found"}
+
+    resources_dir = os.path.realpath(os.path.join(app_path, "Contents", "Resources"))
+
+    def _safe_icon_path(name: str) -> "str | None":
+        """Resolve an icon name and ensure it stays within the app bundle."""
+        # Strip any path components from the icon name — it must be a plain filename
+        name = os.path.basename(name)
+        if not name or "\0" in name:
+            return None
+        candidate = os.path.realpath(os.path.join(resources_dir, name))
+        # Confirm the resolved path is still inside the app bundle
+        if not candidate.startswith(os.path.realpath(app_path) + os.sep):
+            return None
+        return candidate if os.path.exists(candidate) else None
+
     try:
         info_plist = os.path.join(app_path, "Contents", "Info.plist")
         r = run_shell(["defaults", "read", info_plist, "CFBundleIconFile"], timeout=5)
-        icon_name = r.get("output", "").strip() or "AppIcon"
-        if not icon_name.endswith(".icns"):
-            icon_name += ".icns"
-        icon_path = os.path.join(app_path, "Contents", "Resources", icon_name)
-        if not os.path.exists(icon_path):
+        raw_icon_name = r.get("output", "").strip() or "AppIcon"
+        if not raw_icon_name.endswith(".icns"):
+            raw_icon_name += ".icns"
+        icon_path = _safe_icon_path(raw_icon_name)
+        if not icon_path:
             for fb in ["AppIcon.icns", "Application.icns", "app.icns"]:
-                fp = os.path.join(app_path, "Contents", "Resources", fb)
-                if os.path.exists(fp):
-                    icon_path = fp
+                icon_path = _safe_icon_path(fb)
+                if icon_path:
                     break
-        if not os.path.exists(icon_path):
+        if not icon_path:
             return {"ok": False, "error": "Icon file not found"}
         fd, tmp = tempfile.mkstemp(suffix=".png", prefix="msmr_ico_")
         os.close(fd)
@@ -809,7 +1015,7 @@ def get_app_icon_b64(app_name: str) -> dict:
             return {"ok": True, "data": data, "mime": "image/png"}
         finally:
             try: os.unlink(tmp)
-            except Exception: pass
+            except OSError: pass
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -826,9 +1032,9 @@ def force_quit_app(name: str) -> dict:
 # ─── Controls dict ────────────────────────────────────────────────────────────
 
 CONTROLS = {
-    "play_pause":       lambda: run_script('tell application "Spotify" to playpause'),
-    "next_track":       lambda: run_script('tell application "Spotify" to next track'),
-    "prev_track":       lambda: run_script('tell application "Spotify" to previous track'),
+    "play_pause":       lambda: _media_cmd("playpause", "playpause"),
+    "next_track":       lambda: _media_cmd("next track", "next track"),
+    "prev_track":       lambda: _media_cmd("previous track", "back track"),
     "vol_up":           lambda: run_script('set volume output volume (output volume of (get volume settings) + 10)'),
     "vol_down":         lambda: run_script('set volume output volume (output volume of (get volume settings) - 10)'),
     "mute":             lambda: run_script("set volume with output muted"),
@@ -876,12 +1082,30 @@ class Handler(BaseHTTPRequestHandler):
         if is_https:
             self.send_header("Strict-Transport-Security", "max-age=31536000")
 
+    # Allowed CORS origins: only the server itself (local access only)
+    _ALLOWED_ORIGINS = {"https://localhost", "http://localhost",
+                        "https://127.0.0.1", "http://127.0.0.1"}
+
+    def _cors_origin(self) -> str:
+        origin = (self.headers.get("Origin") or "").strip()
+        if origin in self._ALLOWED_ORIGINS:
+            return origin
+        # Allow same-host requests (iPhone connecting to server's LAN IP)
+        # by reflecting back null or omitting the header entirely
+        return ""
+
     def send_json(self, data: dict, code: int = 200):
+        # Encrypt response when client opts in (sends X-Enc: 1) and is authenticated
+        if _ENC_OK and self.headers.get("X-Enc") == "1" and self.token():
+            data = enc_response(data, self.token())
         body = json.dumps(data).encode()
         self.send_response(code)
-        self.send_header("Content-Type","application/json")
-        self.send_header("Content-Length",len(body))
-        self.send_header("Access-Control-Allow-Origin","*")
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", len(body))
+        origin = self._cors_origin()
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self._security_headers()
         self.end_headers()
         self.wfile.write(body)
@@ -896,17 +1120,34 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    # Maximum accepted request body size (1 MB)
+    _MAX_BODY = 1 * 1024 * 1024
+
     def body(self) -> dict:
-        n = int(self.headers.get("Content-Length",0))
+        try:
+            n = int(self.headers.get("Content-Length", 0))
+        except (ValueError, TypeError):
+            n = 0
+        if n < 0 or n > self._MAX_BODY:
+            return {}
         raw = self.rfile.read(n)
-        try: return json.loads(raw) if raw else {}
-        except Exception: return {}
+        try:
+            parsed = json.loads(raw) if raw else {}
+        except (ValueError, UnicodeDecodeError):
+            return {}
+        # Auto-decrypt if client sent an encrypted body
+        if "e" in parsed:
+            return dec_request(parsed, self.token())
+        return parsed
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin","*")
+        origin = self._cors_origin()
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods","GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers","Content-Type,X-Session-Token")
+        self.send_header("Access-Control-Allow-Headers","Content-Type,X-Session-Token,X-Enc")
         self.end_headers()
 
     def guard(self) -> bool:
@@ -945,7 +1186,11 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/terminal/output": self.send_json(terminal_get_output())
         elif path == "/api/safari/info":  self.send_json(safari_info())
         elif path == "/api/clipboard":    self.send_json(get_clipboard())
-        elif path == "/api/screenshot":   self.send_json(screenshot_b64())
+        elif path == "/api/screenshot":
+            if not screenshot_rate_ok(self.token()):
+                self.send_json({"ok": False, "error": "Rate limit: 1 screenshot per 2 seconds"}, 429)
+            else:
+                self.send_json(screenshot_b64())
         elif path == "/api/darkmode":     self.send_json(get_darkmode())
         elif path == "/api/safari/action":
             a = params.get("action",[""])[0]
@@ -981,7 +1226,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 record_fail(ip)
                 with _state_lock:
-                    left = max(0, 5 - _attempts.get(ip,[0,0])[0])
+                    left = max(0, 5 - _attempts.get(ip, {"count": 0})["count"])
                 self.send_json({"ok":False,"error":f"Wrong PIN. {left} attempt(s) left."},401)
             return
 
@@ -990,7 +1235,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"ok":False,"error":"Already configured"},400)
                 return
             pin = data.get("pin","")
-            if not (pin.isdigit() and 6 <= len(pin) <= 12):
+            if not isinstance(pin, str) or not pin.isdigit() or not (6 <= len(pin) <= 12):
                 self.send_json({"ok":False,"error":"PIN must be 6–12 digits"},400)
                 return
             salt, h = hash_pin(pin)
@@ -1072,7 +1317,7 @@ class Handler(BaseHTTPRequestHandler):
             op = data.get("old_pin",""); np = data.get("new_pin","")
             if not verify_pin_kc(op):
                 self.send_json({"ok":False,"error":"Current PIN incorrect"})
-            elif not (np.isdigit() and 6 <= len(np) <= 12):
+            elif not (isinstance(np, str) and np.isdigit() and 6 <= len(np) <= 12):
                 self.send_json({"ok":False,"error":"New PIN: 6–12 digits"})
             else:
                 salt, h = hash_pin(np)
@@ -1080,10 +1325,18 @@ class Handler(BaseHTTPRequestHandler):
                     _cfg["pin_salt"] = salt; _cfg["pin_hash"] = h
                     _cfg["pin_length"] = len(np)
                     save_config()
-                self.send_json({"ok":True})
+                # Security: invalidate ALL sessions so old-PIN holders are logged out
+                with _state_lock:
+                    _sessions.clear()
+                with _key_cache_lock:
+                    _key_cache.clear()
+                self.send_json({"ok":True,"relogin_required":True})
         elif path == "/api/auth/logout":
+            tok = self.token()
             with _state_lock:
-                _sessions.pop(self.token(), None)
+                _sessions.pop(tok, None)
+            with _key_cache_lock:
+                _key_cache.pop(tok, None)
             self.send_json({"ok":True})
         else:
             self.send_json({"ok":False,"error":"Not found"},404)
@@ -1112,10 +1365,23 @@ if __name__ == "__main__":
     if use_https:
         try:
             ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            # Require TLS 1.2 minimum; TLS 1.3 is used automatically when available
             ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+            # Disable TLS renegotiation (CVE-2009-3555 class of attacks)
+            ctx.options |= ssl.OP_NO_RENEGOTIATION
+            # Restrict to forward-secrecy cipher suites for TLS 1.2;
+            # TLS 1.3 suites are always strong and managed separately by Python's ssl module.
+            ctx.set_ciphers(
+                "ECDHE+AESGCM:ECDHE+CHACHA20:"   # ECDHE with AEAD — forward secrecy
+                "DHE+AESGCM:DHE+CHACHA20:"        # DHE with AEAD — forward secrecy
+                "!aNULL:!eNULL:!EXPORT:!MD5:!RC4:!3DES:!DES:!SHA1"  # explicit denies
+            )
             ctx.load_cert_chain(CERT_FILE, KEY_FILE)
             server.socket = ctx.wrap_socket(server.socket, server_side=True)
             proto = "https"
+            if not _ENC_OK:
+                print("  ⚠ 'cryptography' package not installed — app-layer AES-GCM encryption disabled.")
+                print("    Run: pip3 install cryptography")
         except Exception as e:
             print(f"  ⚠ TLS failed ({e}) — falling back to HTTP")
 

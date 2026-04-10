@@ -2,44 +2,95 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#05050f">
+<meta name="theme-color" content="#07071a">
 <title>Murari MacControl</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#05050f; --s1:#0a0a1a; --s2:#0f0f22; --card:#13132a; --card2:#181835;
-  --brd:rgba(255,255,255,.07); --brd2:rgba(255,255,255,.13);
-  --a1:#5e4fff; --a2:#ff4f9a; --a3:#3dffa0; --a4:#ffa83d; --a5:#3dcfff;
-  --txt:#ecedf8; --muted:#565680; --danger:#ff4a4a;
-  --r:14px; --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+  /* Base */
+  --bg:#07071a; --s1:rgba(255,255,255,.05); --s2:rgba(255,255,255,.08);
+  --card:rgba(255,255,255,.09); --card2:rgba(255,255,255,.14);
+  --brd:rgba(255,255,255,.13); --brd2:rgba(255,255,255,.22);
+  /* Accents — slightly warmer/brighter for iOS 26 vibe */
+  --a1:#8075ff; --a2:#ff6aaa; --a3:#3fffa8; --a4:#ffb93d; --a5:#3dc8ff;
+  --txt:rgba(255,255,255,.96); --muted:rgba(255,255,255,.38); --danger:#ff5555;
+  --r:16px; --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+  /* Glass blur tokens */
+  --gblur:blur(28px) saturate(180%);
+  --gblur-sm:blur(16px) saturate(160%);
+  --gblur-lg:blur(48px) saturate(200%);
+  /* Spring easing */
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.25,.46,.45,.94);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);display:flex;flex-direction:column}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);
+  display:flex;flex-direction:column;position:relative}
+
+/* ── Ambient gradient orbs — glass blurs pick these up ── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 65% 55% at 15% 8%,  rgba(128,117,255,.28) 0%,transparent 70%),
+    radial-gradient(ellipse 55% 45% at 88% 85%, rgba(255,106,170,.22) 0%,transparent 70%),
+    radial-gradient(ellipse 45% 65% at 75% 18%, rgba(61,200,255,.18) 0%,transparent 70%),
+    radial-gradient(ellipse 60% 40% at 25% 90%, rgba(63,255,168,.14) 0%,transparent 70%);
+  animation:ambient-pulse 24s ease-in-out infinite alternate;
+}
+@keyframes ambient-pulse{
+  0%  {transform:scale(1)   ;opacity:1}
+  50% {transform:scale(1.06);opacity:.88}
+  100%{transform:scale(1)   ;opacity:1}
+}
 
 /* ═══════════════ LOGIN ══════════════════════════════════ */
 #login-screen{
   position:fixed;inset:0;z-index:300;
-  background:var(--bg);display:flex;flex-direction:column;
+  background:linear-gradient(160deg,rgba(16,14,40,.96),rgba(10,8,28,.98));
+  display:flex;flex-direction:column;
   align-items:center;justify-content:center;
   padding:20px 28px calc(var(--sb)+28px);
+  backdrop-filter:var(--gblur-lg);
+  -webkit-backdrop-filter:var(--gblur-lg);
 }
-.lg-logo{font-size:54px;margin-bottom:6px}
-.lg-brand{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+.lg-logo{font-size:56px;margin-bottom:6px;
+  filter:drop-shadow(0 4px 24px rgba(128,117,255,.5))}
+.lg-brand{font-size:10px;font-weight:700;letter-spacing:3.5px;text-transform:uppercase;
   color:var(--muted);margin-bottom:4px}
 .lg-title{font-size:28px;font-weight:800;letter-spacing:-.5px;
   background:linear-gradient(135deg,var(--a1),var(--a2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-.lg-sub{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.5;margin-bottom:30px}
-/* Dots */
-.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:22px;height:16px}
-.pin-dot{width:12px;height:12px;border-radius:50%;background:var(--brd2);
-  transition:background .15s,transform .15s}
-.pin-dot.filled{background:var(--a1);transform:scale(1.15)}
+.lg-sub{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.55;margin-bottom:30px}
+
+/* Dots — liquid glass */
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:28px;height:22px;align-items:center}
+.pin-dot{
+  width:14px;height:14px;border-radius:50%;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.22);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 2px 8px rgba(0,0,0,.3);
+  transition:background .2s var(--ease-out),transform .35s var(--spring),
+             box-shadow .25s,border-color .2s;
+}
+@keyframes dotIdle{
+  0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 2px 8px rgba(0,0,0,.3)}
+  50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 2px 16px rgba(128,117,255,.15)}
+}
+.pin-dot{animation:dotIdle 3s ease-in-out infinite}
+.pin-dot.filled{
+  background:linear-gradient(145deg,var(--a1),var(--a2));
+  border-color:rgba(128,117,255,.6);
+  transform:scale(1.3);
+  box-shadow:0 0 14px rgba(128,117,255,.7),0 0 28px rgba(128,117,255,.3),
+             inset 0 1px 0 rgba(255,255,255,.5);
+  animation:none;
+}
 @keyframes shake-dots{
   0%,100%{transform:translateX(0)}
   15%{transform:translateX(-8px)}
@@ -49,21 +100,45 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);displa
   75%{transform:translateX(-3px)}
   90%{transform:translateX(2px)}
 }
+
 /* Numpad */
-.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:100%;max-width:290px}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:292px}
 .np-btn{
-  height:66px;border-radius:18px;background:var(--s2);border:1px solid var(--brd2);
+  height:68px;border-radius:20px;
+  background:rgba(255,255,255,.10);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.18);
   color:var(--txt);font-size:24px;font-weight:600;font-family:'Inter',sans-serif;
-  cursor:pointer;touch-action:manipulation;transition:transform .1s,background .12s;
+  cursor:pointer;touch-action:manipulation;
+  transition:transform .12s,background .15s,box-shadow .15s;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  box-shadow:0 2px 12px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.2);
+  position:relative;overflow:hidden;
 }
-.np-btn:active{transform:scale(.86);background:var(--a1)}
+.np-btn::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,transparent 55%);
+  pointer-events:none;border-radius:inherit;
+}
+.np-btn:active{
+  transform:scale(.86);
+  background:rgba(128,117,255,.35);
+  box-shadow:0 1px 6px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.15);
+}
 .np-letters{font-size:7px;font-weight:600;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
-.np-del{font-size:19px}
-.np-go{background:linear-gradient(135deg,var(--a1),var(--a2));border-color:transparent;font-size:18px;font-weight:700}
+.np-del{font-size:20px}
+.np-go{
+  background:linear-gradient(145deg,var(--a1),var(--a2));
+  border-color:transparent;font-size:18px;font-weight:700;
+  box-shadow:0 4px 20px rgba(128,117,255,.45),inset 0 1px 0 rgba(255,255,255,.3);
+}
+.np-go:active{transform:scale(.86);box-shadow:0 2px 10px rgba(128,117,255,.3)}
 .lg-setup-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted);
   text-align:center;text-transform:uppercase;margin-bottom:10px;display:none}
-.lg-fp{background:var(--s2);border:1px solid var(--brd);border-radius:10px;
+.lg-fp{
+  background:rgba(255,255,255,.07);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid var(--brd);border-radius:12px;
   padding:9px 12px;font-family:'DM Mono',monospace;font-size:9px;color:var(--a5);
   word-break:break-all;text-align:center;line-height:1.6;margin-bottom:12px;display:none}
 .lg-err{margin-top:14px;font-size:12px;color:var(--danger);text-align:center;min-height:18px}
@@ -72,48 +147,56 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);displa
 #sbar{
   flex-shrink:0;position:relative;z-index:20;
   padding:calc(var(--st)+6px) 14px 7px;
-  background:rgba(5,5,15,.95);backdrop-filter:blur(16px);
-  border-bottom:1px solid var(--brd);
+  background:rgba(7,7,26,.72);
+  backdrop-filter:var(--gblur);-webkit-backdrop-filter:var(--gblur);
+  border-bottom:1px solid rgba(255,255,255,.10);
   display:flex;align-items:center;gap:0;
 }
-/* Branding in status bar */
 .sb-brand{display:flex;align-items:baseline;gap:4px;flex:0 0 auto}
 .sb-brand-name{font-size:12px;font-weight:800;letter-spacing:-.3px;
   background:linear-gradient(135deg,var(--a1),var(--a2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .sb-brand-beta{font-size:7px;font-weight:700;letter-spacing:.5px;
   color:var(--a4);text-transform:uppercase;
-  background:rgba(255,168,61,.12);border:1px solid rgba(255,168,61,.3);
-  border-radius:4px;padding:1px 4px;vertical-align:super;
-  -webkit-text-fill-color:var(--a4)}
+  background:rgba(255,185,61,.12);border:1px solid rgba(255,185,61,.3);
+  border-radius:4px;padding:1px 4px;vertical-align:super;-webkit-text-fill-color:var(--a4)}
 .sbseg{display:flex;align-items:center;gap:5px;flex:1;justify-content:center}
 .sbseg:last-child{justify-content:flex-end}
 .sbico{font-size:12px}
 .sbtxt{font-size:10px;font-weight:600;color:var(--muted);font-family:'DM Mono',monospace}
 .sbtxt.ok{color:var(--a3)}.sbtxt.warn{color:var(--a4)}.sbtxt.bad{color:var(--danger)}
-/* Signal bars */
 .sigbars{display:flex;align-items:flex-end;gap:2px;height:13px}
-.sigbar{width:3px;border-radius:1px;background:var(--brd2);transition:background .35s}
+.sigbar{width:3px;border-radius:1px;background:rgba(255,255,255,.18);transition:background .35s}
 .sigbar:nth-child(1){height:4px}.sigbar:nth-child(2){height:7px}
 .sigbar:nth-child(3){height:10px}.sigbar:nth-child(4){height:13px}
 .sigbar.on{background:var(--a3)}.sigbar.warn{background:var(--a4)}.sigbar.bad{background:var(--danger)}
-/* Battery */
-.battbody{width:20px;height:10px;border:1.5px solid var(--muted);border-radius:2px;
+.battbody{width:20px;height:10px;border:1.5px solid rgba(255,255,255,.38);border-radius:2px;
   position:relative;display:flex;align-items:center;padding:1.5px}
-.battbody::after{content:'';width:2px;height:4px;background:var(--muted);
+.battbody::after{content:'';width:2px;height:4px;background:rgba(255,255,255,.38);
   border-radius:0 1px 1px 0;position:absolute;right:-4px}
 .battfill{height:100%;border-radius:1px;background:var(--a3);transition:width .5s,background .5s}
 .battfill.warn{background:var(--a4)}.battfill.low{background:var(--danger)}
 
 /* ═══════════════ TABS ════════════════════════════════════ */
-.tabs{flex-shrink:0;display:flex;gap:4px;padding:7px 12px 5px;
-  overflow-x:auto;scrollbar-width:none;position:relative;z-index:10}
+.tabs{
+  flex-shrink:0;display:flex;gap:5px;padding:7px 12px 6px;
+  overflow-x:auto;scrollbar-width:none;position:relative;z-index:10;
+}
 .tabs::-webkit-scrollbar{display:none}
-.tab{flex-shrink:0;padding:5px 12px;border-radius:100px;
+.tab{
+  flex-shrink:0;padding:6px 13px;border-radius:100px;
   font-size:11px;font-weight:600;letter-spacing:.2px;
-  background:var(--s2);border:1px solid var(--brd);color:var(--muted);
-  cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
-.tab.active{background:var(--a1);border-color:var(--a1);color:#fff}
+  background:rgba(255,255,255,.08);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--muted);cursor:pointer;white-space:nowrap;
+  transition:transform .28s var(--spring),background .2s,color .2s,border-color .2s,box-shadow .2s;
+  touch-action:manipulation;
+}
+.tab.active{
+  background:rgba(128,117,255,.30);border-color:rgba(128,117,255,.55);color:#fff;
+  box-shadow:0 2px 16px rgba(128,117,255,.3),inset 0 1px 0 rgba(255,255,255,.25);
+}
 .tab:active{transform:scale(.91)}
 
 /* ═══════════════ PANE ════════════════════════════════════ */
@@ -123,53 +206,81 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);displa
 .page{display:none}.page.active{display:block}
 
 /* ═══════════════ CARDS ══════════════════════════════════ */
-.card{background:var(--card);border:1px solid var(--brd);
-  border-radius:var(--r);padding:13px 14px;margin-bottom:11px}
+.card{
+  background:var(--card);
+  backdrop-filter:var(--gblur);-webkit-backdrop-filter:var(--gblur);
+  border:1px solid var(--brd);border-radius:var(--r);
+  padding:13px 14px;margin-bottom:11px;position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(160deg,rgba(255,255,255,.07) 0%,transparent 55%);
+}
 .clbl{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
   color:var(--muted);margin-bottom:8px}
 .row{display:flex;gap:7px;align-items:center}
 
 /* ═══════════════ BTNS ═══════════════════════════════════ */
-.btn{display:flex;align-items:center;justify-content:center;
-  border-radius:11px;border:1px solid var(--brd);
-  background:var(--s2);color:var(--txt);font-family:'Inter',sans-serif;
-  cursor:pointer;touch-action:manipulation;transition:transform .1s,background .12s;font-weight:600}
-.btn:active{transform:scale(.87)}
-.btn.a1{background:var(--a1);border-color:var(--a1);color:#fff}
-.btn.a2{background:var(--a2);border-color:var(--a2);color:#fff}
-.btn.a3{background:var(--a3);border-color:var(--a3);color:#111}
-.btn.a4{background:var(--a4);border-color:var(--a4);color:#111}
-.btn.a5{background:var(--a5);border-color:var(--a5);color:#111}
-.btn.danger{border-color:#ff4a4a44;color:var(--danger)}
-.btn.warn{border-color:#ffa83d44;color:var(--a4)}
+.btn{
+  display:flex;align-items:center;justify-content:center;
+  border-radius:12px;border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.09);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  color:var(--txt);font-family:'Inter',sans-serif;font-weight:600;
+  cursor:pointer;touch-action:manipulation;
+  transition:transform .28s var(--spring),background .15s,box-shadow .15s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15);
+}
+.btn:active{transform:scale(.87);background:rgba(255,255,255,.14)}
+.btn.a1{background:rgba(128,117,255,.30);border-color:rgba(128,117,255,.5);color:#fff;
+  box-shadow:0 2px 14px rgba(128,117,255,.25),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn.a2{background:rgba(255,106,170,.28);border-color:rgba(255,106,170,.5);color:#fff;
+  box-shadow:0 2px 14px rgba(255,106,170,.25),inset 0 1px 0 rgba(255,255,255,.2)}
+.btn.a3{background:rgba(63,255,168,.22);border-color:rgba(63,255,168,.45);color:#0d1f17;
+  box-shadow:0 2px 14px rgba(63,255,168,.2),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn.a4{background:rgba(255,185,61,.22);border-color:rgba(255,185,61,.45);color:#1f1500;
+  box-shadow:0 2px 14px rgba(255,185,61,.2),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn.a5{background:rgba(61,200,255,.22);border-color:rgba(61,200,255,.45);color:#00151f;
+  box-shadow:0 2px 14px rgba(61,200,255,.2),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn.danger{border-color:rgba(255,85,85,.35);color:var(--danger)}
+.btn.warn{border-color:rgba(255,185,61,.35);color:var(--a4)}
+.btn.a1:active,.btn.a2:active,.btn.a3:active{transform:scale(.87);box-shadow:none}
 .btn-ico{width:44px;height:44px;font-size:18px;flex-shrink:0}
-.btn-full{width:100%;height:42px;font-size:12px;border-radius:11px}
-.btn-half{flex:1;height:38px;font-size:11px;border-radius:10px}
+.btn-full{width:100%;height:42px;font-size:12px;border-radius:12px}
+.btn-half{flex:1;height:38px;font-size:11px;border-radius:11px}
 
 /* ═══════════════ INPUTS ═════════════════════════════════ */
-.inp{flex:1;background:var(--s1);border:1px solid var(--brd);
-  border-radius:10px;padding:9px 12px;color:var(--txt);
-  font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s}
-.inp:focus{border-color:var(--a1)}
-.inp.f2:focus{border-color:var(--a2)}.inp.f3:focus{border-color:var(--a3)}
-.inp.f5:focus{border-color:var(--a5)}
+.inp{
+  flex:1;background:rgba(255,255,255,.07);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:11px;padding:9px 12px;color:var(--txt);
+  font-family:'DM Mono',monospace;font-size:12px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.inp:focus{border-color:rgba(128,117,255,.6);box-shadow:0 0 0 3px rgba(128,117,255,.15)}
+.inp.f2:focus{border-color:rgba(255,106,170,.6);box-shadow:0 0 0 3px rgba(255,106,170,.15)}
+.inp.f3:focus{border-color:rgba(63,255,168,.6);box-shadow:0 0 0 3px rgba(63,255,168,.15)}
+.inp.f5:focus{border-color:rgba(61,200,255,.6);box-shadow:0 0 0 3px rgba(61,200,255,.15)}
 textarea.inp{min-height:66px;resize:vertical;line-height:1.5}
 
 /* ═══════════════ NOW PLAYING ════════════════════════════ */
 #np-card{
   border-radius:var(--r);overflow:hidden;margin-bottom:11px;
-  background:var(--card);border:1px solid var(--brd);position:relative;
+  background:rgba(255,255,255,.09);
+  backdrop-filter:var(--gblur);-webkit-backdrop-filter:var(--gblur);
+  border:1px solid var(--brd);position:relative;
 }
 .np-art-bg{
   position:absolute;inset:0;background-size:cover;background-position:center;
-  filter:blur(28px) brightness(.35);transform:scale(1.1);
-  transition:background-image .6s;
+  filter:blur(32px) brightness(.3) saturate(1.4);transform:scale(1.12);
+  transition:background-image .7s var(--ease-out);
 }
 .np-inner{position:relative;z-index:1;display:flex;gap:13px;align-items:center;padding:13px 14px}
-.np-art{width:58px;height:58px;border-radius:10px;object-fit:cover;
+.np-art{width:58px;height:58px;border-radius:12px;object-fit:cover;
   background:var(--s2);flex-shrink:0;
-  box-shadow:0 4px 16px rgba(0,0,0,.5);}
-.np-art-placeholder{width:58px;height:58px;border-radius:10px;background:var(--s2);
+  box-shadow:0 6px 20px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.12)}
+.np-art-placeholder{width:58px;height:58px;border-radius:12px;background:var(--s2);
   flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px}
 .np-info{flex:1;min-width:0}
 .np-track{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -178,8 +289,7 @@ textarea.inp{min-height:66px;resize:vertical;line-height:1.5}
 .np-album{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .np-state{display:inline-flex;align-items:center;gap:4px;margin-top:6px;
-  font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--a3)}
+  font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--a3)}
 .np-state-dot{width:6px;height:6px;border-radius:50%;background:var(--a3);
   animation:pulse-dot 1.5s infinite}
 @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
@@ -189,74 +299,84 @@ textarea.inp{min-height:66px;resize:vertical;line-height:1.5}
 
 /* ═══════════════ MEDIA ══════════════════════════════════ */
 .media-row{display:flex;gap:9px;margin-bottom:11px}
-.btn-med{flex:1;height:54px;border-radius:13px;font-size:20px}
-.btn-play-main{background:var(--a1)!important;border-color:var(--a1)!important;font-size:24px!important}
+.btn-med{flex:1;height:54px;border-radius:14px;font-size:20px}
+.btn-play-main{
+  background:linear-gradient(145deg,var(--a1),var(--a2))!important;
+  border-color:transparent!important;font-size:24px!important;
+  box-shadow:0 4px 20px rgba(128,117,255,.4)!important;
+}
 .vol-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .vol-val{font-family:'DM Mono',monospace;font-size:13px;color:var(--a1)}
-input[type=range]{-webkit-appearance:none;width:100%;height:5px;
-  background:var(--brd2);border-radius:3px;outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;
-  border-radius:50%;background:var(--a1);cursor:pointer;box-shadow:0 0 0 4px #5e4fff1e}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;
+  background:rgba(255,255,255,.18);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+  border-radius:50%;background:var(--a1);cursor:pointer;
+  box-shadow:0 2px 12px rgba(128,117,255,.5),0 0 0 4px rgba(128,117,255,.2)}
 
 /* ═══════════════ APPS ═══════════════════════════════════ */
-.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
 .app-tile{
-  aspect-ratio:1;border-radius:16px;
-  background:linear-gradient(145deg,var(--card2),var(--card));
-  border:1px solid var(--brd);
+  aspect-ratio:1;border-radius:18px;
+  background:rgba(255,255,255,.09);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.14);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:4px;cursor:pointer;touch-action:manipulation;
-  transition:transform .12s,box-shadow .15s;padding:5px;position:relative;overflow:hidden;
+  transition:transform .32s var(--spring),box-shadow .2s;
+  padding:5px;position:relative;overflow:hidden;
+  box-shadow:0 2px 10px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.15);
 }
 .app-tile::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.04),transparent);
-  pointer-events:none;
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(160deg,rgba(255,255,255,.10) 0%,transparent 55%);
 }
-.app-tile:active{transform:scale(.83)}
-.app-tile .ico{font-size:26px;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+.app-tile:active{transform:scale(.82);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.app-tile .ico{font-size:26px;line-height:1;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
 .app-tile .app-icon-img{width:38px;height:38px;border-radius:10px;object-fit:cover;
-  filter:drop-shadow(0 2px 6px rgba(0,0,0,.5));flex-shrink:0}
-.app-tile .lbl{font-size:8px;font-weight:600;color:rgba(255,255,255,.5);
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.5));flex-shrink:0}
+.app-tile .lbl{font-size:8px;font-weight:600;color:rgba(255,255,255,.55);
   max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
-/* Running indicator: green dot at bottom edge */
 .app-tile .run-dot{
   position:absolute;bottom:5px;left:50%;transform:translateX(-50%);
   width:5px;height:5px;border-radius:50%;background:var(--a3);
-  box-shadow:0 0 6px var(--a3);display:none;
+  box-shadow:0 0 8px var(--a3);display:none;
 }
 .app-tile.running .run-dot{display:block}
-.app-tile.running{border-color:rgba(61,255,160,.28);
-  box-shadow:0 0 0 1px rgba(61,255,160,.1) inset}
+.app-tile.running{
+  border-color:rgba(63,255,168,.35);
+  box-shadow:0 0 0 1px rgba(63,255,168,.15) inset,0 2px 14px rgba(63,255,168,.12);}
 .app-tile.running .lbl{color:var(--a3)}
-/* Manage (⋯) button on running tiles */
 .app-tile .tile-mgr{
   position:absolute;top:4px;right:4px;
   width:18px;height:18px;border-radius:5px;
-  background:rgba(0,0,0,.45);border:none;
-  font-size:9px;color:rgba(255,255,255,.6);
+  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);
+  font-size:9px;color:rgba(255,255,255,.7);
   display:none;align-items:center;justify-content:center;
-  cursor:pointer;touch-action:manipulation;z-index:2;
-  line-height:1;
+  cursor:pointer;touch-action:manipulation;z-index:2;line-height:1;
 }
 .app-tile.running .tile-mgr{display:flex}
-/* App action menu */
+
+/* App action menu — frosted sheet */
 .app-menu-overlay{
   position:fixed;inset:0;z-index:200;
-  background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+  background:rgba(0,0,0,.5);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   display:flex;align-items:flex-end;justify-content:center;
-  padding:0 16px calc(var(--sb)+16px);
+  padding:0 14px calc(var(--sb)+14px);
 }
 .app-menu{
   width:100%;max-width:400px;
-  background:var(--card2);border:1px solid var(--brd2);
-  border-radius:20px;overflow:hidden;
+  background:rgba(22,22,44,.88);
+  backdrop-filter:var(--gblur);-webkit-backdrop-filter:var(--gblur);
+  border:1px solid rgba(255,255,255,.20);
+  border-radius:22px;overflow:hidden;
+  box-shadow:0 -4px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18);
 }
 .app-menu-header{
   display:flex;align-items:center;gap:12px;
-  padding:16px 18px 13px;border-bottom:1px solid var(--brd);
+  padding:16px 18px 13px;border-bottom:1px solid rgba(255,255,255,.10);
 }
-.app-menu-icon{width:44px;height:44px;border-radius:12px;background:var(--s2);
+.app-menu-icon{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.1);
   display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .app-menu-icon img{width:44px;height:44px;border-radius:12px;object-fit:cover}
 .app-menu-name{font-size:16px;font-weight:700}
@@ -268,224 +388,334 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
   font-family:'Inter',sans-serif;font-size:14px;font-weight:500;
   color:var(--txt);cursor:pointer;touch-action:manipulation;
   display:flex;align-items:center;gap:12px;padding:0 20px;
-  border-bottom:1px solid var(--brd);transition:background .12s;
+  border-bottom:1px solid rgba(255,255,255,.08);transition:background .15s;
 }
 .app-menu-btn:last-child{border-bottom:none}
-.app-menu-btn:active{background:rgba(255,255,255,.04)}
+.app-menu-btn:active{background:rgba(255,255,255,.06)}
 .app-menu-btn .amb-ico{font-size:18px;width:24px;text-align:center}
 .app-menu-btn.danger{color:var(--danger)}
 .app-menu-btn.warn-btn{color:var(--a4)}
 .app-menu-cancel{
-  margin-top:8px;margin-bottom:0;
-  background:var(--s2);border:1px solid var(--brd2);border-radius:16px;
-  height:50px;font-size:14px;font-weight:600;color:var(--muted);
+  margin-top:10px;margin-bottom:0;
+  background:rgba(255,255,255,.10);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.18);border-radius:18px;
+  height:50px;font-size:14px;font-weight:600;color:rgba(255,255,255,.7);
   cursor:pointer;touch-action:manipulation;width:100%;
-  font-family:'Inter',sans-serif;transition:background .12s;
+  font-family:'Inter',sans-serif;transition:background .15s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
 }
-.app-menu-cancel:active{background:var(--card)}
+.app-menu-cancel:active{background:rgba(255,255,255,.16)}
 .sec-lbl{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
   color:var(--muted);margin:13px 0 7px 2px}
 .search-wrap{position:relative;margin-bottom:9px}
 .search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);
   font-size:13px;pointer-events:none;color:var(--muted)}
-.search-inp{width:100%;background:var(--s2);border:1px solid var(--brd);
-  border-radius:11px;padding:9px 13px 9px 33px;color:var(--txt);
-  font-size:13px;outline:none;font-family:'Inter',sans-serif;transition:border-color .2s}
-.search-inp:focus{border-color:var(--a1)}
+.search-inp{
+  width:100%;background:rgba(255,255,255,.08);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:12px;padding:9px 13px 9px 33px;color:var(--txt);
+  font-size:13px;outline:none;font-family:'Inter',sans-serif;transition:border-color .2s,box-shadow .2s;
+}
+.search-inp:focus{border-color:rgba(128,117,255,.55);box-shadow:0 0 0 3px rgba(128,117,255,.15)}
 .ldrow{display:flex;align-items:center;justify-content:center;
   gap:7px;color:var(--muted);font-size:11.5px;padding:20px;grid-column:span 4}
 
 /* ═══════════════ DASHBOARD ══════════════════════════════ */
 .dash-hero{
-  background:linear-gradient(135deg,rgba(94,79,255,.18),rgba(255,79,154,.12));
-  border:1px solid rgba(94,79,255,.25);border-radius:18px;
+  background:rgba(128,117,255,.12);
+  backdrop-filter:var(--gblur);-webkit-backdrop-filter:var(--gblur);
+  border:1px solid rgba(128,117,255,.28);border-radius:20px;
   padding:16px 16px 14px;margin-bottom:11px;position:relative;overflow:hidden;
+  box-shadow:0 4px 24px rgba(128,117,255,.12),inset 0 1px 0 rgba(255,255,255,.18);
 }
 .dash-hero::before{
-  content:'';position:absolute;top:-30px;right:-30px;
-  width:100px;height:100px;border-radius:50%;
-  background:radial-gradient(circle,rgba(94,79,255,.25),transparent 70%);
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(128,117,255,.3),transparent 70%);
   pointer-events:none;
 }
-.dash-hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.dash-time{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1}
+.dash-hero::after{
+  content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(160deg,rgba(255,255,255,.09) 0%,transparent 50%);
+}
+.dash-hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;position:relative;z-index:1}
+.dash-time{font-size:36px;font-weight:800;letter-spacing:-1.5px;line-height:1}
 .dash-date{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;font-weight:500}
 .dash-batt-big{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 .dash-batt-pct{font-size:22px;font-weight:800;color:var(--a3)}
 .dash-batt-pct.warn{color:var(--a4)}.dash-batt-pct.low{color:var(--danger)}
 .dash-batt-lbl{font-size:9px;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px}
-.dash-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.dash-stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
-  border-radius:12px;padding:9px 10px;text-align:center}
+.dash-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;position:relative;z-index:1}
+.dash-stat{
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  border-radius:13px;padding:9px 10px;text-align:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+}
 .dash-stat-val{font-size:16px;font-weight:800;color:var(--txt)}
 .dash-stat-lbl{font-size:8px;color:var(--muted);font-weight:600;letter-spacing:.5px;
   text-transform:uppercase;margin-top:2px}
 
 /* Dash quick-action grid */
-.dash-quick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px}
+.dash-quick{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
 .dash-qa{
-  height:60px;border-radius:14px;background:var(--card);border:1px solid var(--brd);
+  height:62px;border-radius:16px;
+  background:rgba(255,255,255,.09);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.13);
   display:flex;align-items:center;gap:10px;padding:0 14px;
-  cursor:pointer;touch-action:manipulation;transition:transform .11s,background .12s;
+  cursor:pointer;touch-action:manipulation;
+  transition:transform .28s var(--spring),box-shadow .15s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  position:relative;overflow:hidden;
 }
-.dash-qa:active{transform:scale(.93);background:var(--card2)}
+.dash-qa::before{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(155deg,rgba(255,255,255,.07) 0%,transparent 55%)}
+.dash-qa:active{transform:scale(.93)}
 .dash-qa .dqa-ico{font-size:22px;flex-shrink:0}
 .dash-qa .dqa-info{flex:1;min-width:0}
 .dash-qa .dqa-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dash-qa .dqa-sub{font-size:9px;color:var(--muted);margin-top:1px}
-.dash-qa.a1{border-color:rgba(94,79,255,.3);background:rgba(94,79,255,.08)}
-.dash-qa.a2{border-color:rgba(255,79,154,.3);background:rgba(255,79,154,.08)}
-.dash-qa.a3{border-color:rgba(61,255,160,.3);background:rgba(61,255,160,.08)}
-.dash-qa.a4{border-color:rgba(255,168,61,.3);background:rgba(255,168,61,.08)}
+.dash-qa.a1{border-color:rgba(128,117,255,.35);background:rgba(128,117,255,.12);
+  box-shadow:0 2px 14px rgba(128,117,255,.1),inset 0 1px 0 rgba(255,255,255,.18)}
+.dash-qa.a2{border-color:rgba(255,106,170,.35);background:rgba(255,106,170,.10);
+  box-shadow:0 2px 14px rgba(255,106,170,.1),inset 0 1px 0 rgba(255,255,255,.15)}
+.dash-qa.a3{border-color:rgba(63,255,168,.35);background:rgba(63,255,168,.10);
+  box-shadow:0 2px 14px rgba(63,255,168,.1),inset 0 1px 0 rgba(255,255,255,.15)}
+.dash-qa.a4{border-color:rgba(255,185,61,.35);background:rgba(255,185,61,.10);
+  box-shadow:0 2px 14px rgba(255,185,61,.1),inset 0 1px 0 rgba(255,255,255,.15)}
 
 /* Dash running apps row */
-.dash-running{display:flex;gap:9px;overflow-x:auto;padding-bottom:3px;scrollbar-width:none}
+.dash-running{display:flex;gap:10px;overflow-x:auto;padding-bottom:3px;scrollbar-width:none}
 .dash-running::-webkit-scrollbar{display:none}
-.dash-app-chip{
-  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;
-  cursor:pointer;touch-action:manipulation;
-}
+.dash-app-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;touch-action:manipulation;}
 .dash-app-chip .dac-icon{
-  width:46px;height:46px;border-radius:13px;
-  background:var(--card2);border:1px solid rgba(61,255,160,.25);
+  width:48px;height:48px;border-radius:14px;
+  background:rgba(255,255,255,.10);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(63,255,168,.28);
   display:flex;align-items:center;justify-content:center;font-size:22px;
-  position:relative;transition:transform .12s;overflow:hidden;
+  position:relative;transition:transform .28s var(--spring);overflow:hidden;
+  box-shadow:0 2px 12px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.18);
 }
-.dash-app-chip .dac-icon img{width:46px;height:46px;border-radius:13px;object-fit:cover}
-.dash-app-chip:active .dac-icon{transform:scale(.86)}
+.dash-app-chip .dac-icon img{width:48px;height:48px;border-radius:14px;object-fit:cover}
+.dash-app-chip:active .dac-icon{transform:scale(.84)}
 .dash-app-chip .dac-dot{
   position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
-  width:5px;height:5px;border-radius:50%;background:var(--a3);
-  box-shadow:0 0 5px var(--a3);
+  width:5px;height:5px;border-radius:50%;background:var(--a3);box-shadow:0 0 6px var(--a3);
 }
-.dash-app-chip .dac-lbl{
-  font-size:8px;font-weight:600;color:rgba(255,255,255,.5);
-  max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
-}
+.dash-app-chip .dac-lbl{font-size:8px;font-weight:600;color:rgba(255,255,255,.5);
+  max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
 .dash-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
 .dash-section-hdr .clbl{margin:0}
 .dash-see-all{font-size:10px;font-weight:600;color:var(--a1);cursor:pointer;touch-action:manipulation}
 /* Spotify mini in dashboard */
 .dash-sp{
-  background:var(--card);border:1px solid var(--brd);border-radius:14px;
+  background:rgba(255,255,255,.09);
+  backdrop-filter:var(--gblur);-webkit-backdrop-filter:var(--gblur);
+  border:1px solid var(--brd);border-radius:16px;
   padding:11px 13px;margin-bottom:11px;display:flex;align-items:center;gap:11px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
 }
-.dash-sp-art{width:42px;height:42px;border-radius:8px;background:var(--s2);
-  flex-shrink:0;object-fit:cover}
-.dash-sp-art-ph{width:42px;height:42px;border-radius:8px;background:var(--s2);
+.dash-sp-art{width:42px;height:42px;border-radius:10px;background:var(--s2);
+  flex-shrink:0;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.dash-sp-art-ph{width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,.08);
   flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px}
 .dash-sp-info{flex:1;min-width:0}
 .dash-sp-track{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dash-sp-artist{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dash-sp-controls{display:flex;gap:4px;align-items:center;flex-shrink:0}
-.dash-sp-btn{width:36px;height:36px;border-radius:10px;background:var(--s2);
-  border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;
-  font-size:15px;cursor:pointer;touch-action:manipulation;transition:transform .1s}
-.dash-sp-btn:active{transform:scale(.84);background:var(--a1)}
+.dash-sp-artist{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-sp-controls{display:flex;gap:5px;align-items:center;flex-shrink:0}
+.dash-sp-btn{
+  width:36px;height:36px;border-radius:11px;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;cursor:pointer;touch-action:manipulation;
+  transition:transform .28s var(--spring),background .15s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+}
+.dash-sp-btn:active{transform:scale(.82);background:rgba(128,117,255,.35)}
 
 /* ═══════════════ SAFARI ═════════════════════════════════ */
-.sf-bar{background:var(--s1);border:1px solid var(--brd);border-radius:11px;
-  padding:9px 12px;margin-bottom:9px}
+.sf-bar{
+  background:rgba(255,255,255,.08);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid var(--brd);border-radius:13px;
+  padding:9px 12px;margin-bottom:9px;
+}
 .sf-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sf-url{font-family:'DM Mono',monospace;font-size:9.5px;color:var(--muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.sf-btns{display:flex;gap:6px;margin-bottom:9px}
-.sf-btn{flex:1;height:40px;border-radius:10px;font-size:16px;
-  background:var(--card);border:1px solid var(--brd);color:var(--txt);
-  cursor:pointer;transition:transform .1s;touch-action:manipulation}
-.sf-btn:active{transform:scale(.86)}
+.sf-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:9px}
+.sf-btn{
+  flex:1;height:46px;border-radius:13px;
+  background:rgba(255,255,255,.14);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.24);color:#fff;
+  cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .25s var(--spring),background .15s,box-shadow .2s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 8px rgba(0,0,0,.18);
+  position:relative;overflow:hidden;
+}
+.sf-btn::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(160deg,rgba(255,255,255,.08) 0%,transparent 60%);border-radius:inherit}
+.sf-btn:active{transform:scale(.86);box-shadow:none;background:rgba(61,200,255,.25)}
 
 /* ═══════════════ TERMINAL ═══════════════════════════════ */
-.term-out{margin-top:8px;padding:10px;background:#000;border-radius:10px;
+.term-out{margin-top:8px;padding:10px;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.08);border-radius:12px;
   font-family:'DM Mono',monospace;font-size:10.5px;color:var(--a3);
   max-height:180px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;
   line-height:1.6;display:none}
 .term-out.show{display:block}
 .mode-row{display:flex;gap:6px;margin-top:7px}
-.mode-btn{flex:1;height:30px;border-radius:8px;font-size:10px;font-weight:700;
-  border:1px solid var(--brd);background:var(--s2);color:var(--muted);
-  cursor:pointer;transition:all .14s;touch-action:manipulation}
-.mode-btn.on{background:var(--a3);border-color:var(--a3);color:#111}
+.mode-btn{flex:1;height:30px;border-radius:9px;font-size:10px;font-weight:700;
+  border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.07);color:var(--muted);
+  cursor:pointer;transition:all .18s;touch-action:manipulation}
+.mode-btn.on{background:rgba(63,255,168,.22);border-color:rgba(63,255,168,.45);color:#0d1f17}
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.qbtn{height:35px;border-radius:9px;font-size:10.5px;background:var(--s2);
-  border:1px solid var(--brd);color:var(--txt);cursor:pointer;
-  transition:transform .1s;touch-action:manipulation;font-family:'Inter',sans-serif;font-weight:500}
-.qbtn:active{transform:scale(.9)}
+.qbtn{
+  height:40px;border-radius:12px;font-size:10.5px;font-weight:600;
+  background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);
+  color:#fff;cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .25s var(--spring),background .15s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 1px 6px rgba(0,0,0,.15);
+  font-family:'Inter',sans-serif;
+}
+.qbtn:active{transform:scale(.88);background:rgba(63,255,168,.2)}
 
 /* ═══════════════ UNLOCK ═════════════════════════════════ */
 .pw-wrap{position:relative}
-.pw-inp{width:100%;background:var(--s1);border:1px solid var(--brd);
-  border-radius:11px;padding:11px 44px 11px 14px;color:var(--txt);
+.pw-inp{
+  width:100%;background:rgba(255,255,255,.07);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.14);border-radius:12px;
+  padding:11px 44px 11px 14px;color:var(--txt);
   font-family:'DM Mono',monospace;font-size:15px;letter-spacing:4px;
-  outline:none;transition:border-color .2s}
-.pw-inp:focus{border-color:var(--a2)}
+  outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.pw-inp:focus{border-color:rgba(255,106,170,.55);box-shadow:0 0 0 3px rgba(255,106,170,.15)}
 .pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);
   background:none;border:none;font-size:17px;cursor:pointer;color:var(--muted)}
-.unl-btn{width:100%;height:48px;border-radius:13px;margin-top:10px;
-  background:linear-gradient(135deg,var(--a1),var(--a2));
-  border:none;color:#fff;font-size:15px;font-weight:700;
-  font-family:'Inter',sans-serif;cursor:pointer;transition:transform .1s,opacity .12s}
-.unl-btn:active{transform:scale(.96);opacity:.82}
-.unl-res{margin-top:9px;padding:9px 12px;border-radius:9px;
-  font-size:11px;font-family:'DM Mono',monospace;text-align:center;display:none;line-height:1.5}
+.unl-btn{
+  width:100%;height:48px;border-radius:14px;margin-top:10px;
+  background:linear-gradient(145deg,var(--a1),var(--a2));
+  border:none;color:#fff;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;
+  cursor:pointer;transition:transform .28s var(--spring),opacity .15s;
+  box-shadow:0 4px 22px rgba(128,117,255,.4);
+}
+.unl-btn:active{transform:scale(.96);opacity:.85;box-shadow:none}
+.unl-res{margin-top:9px;padding:9px 12px;border-radius:11px;
+  font-size:11px;font-family:'DM Mono',monospace;text-align:center;display:none;line-height:1.5;
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);}
 .unl-res.show{display:block}
-.unl-res.ok{background:#3dffa010;color:var(--a3);border:1px solid #3dffa025}
-.unl-res.err{background:#ff4a4a10;color:var(--danger);border:1px solid #ff4a4a25}
-.unl-res.info{background:#3dcfff10;color:var(--a5);border:1px solid #3dcfff25}
-/* Wake button */
-.wake-btn{width:100%;height:44px;border-radius:12px;margin-bottom:10px;
-  background:var(--s2);border:1px solid var(--a5);color:var(--a5);
+.unl-res.ok{background:rgba(63,255,168,.08);color:var(--a3);border:1px solid rgba(63,255,168,.22)}
+.unl-res.err{background:rgba(255,85,85,.08);color:var(--danger);border:1px solid rgba(255,85,85,.22)}
+.unl-res.info{background:rgba(61,200,255,.08);color:var(--a5);border:1px solid rgba(61,200,255,.22)}
+.wake-btn{
+  width:100%;height:44px;border-radius:13px;margin-bottom:10px;
+  background:rgba(61,200,255,.10);border:1px solid rgba(61,200,255,.35);color:var(--a5);
   font-size:13px;font-weight:700;font-family:'Inter',sans-serif;
-  cursor:pointer;transition:transform .1s,background .12s;touch-action:manipulation}
-.wake-btn:active{transform:scale(.96);background:#3dcfff15}
-/* Permission tip */
-.perm-tip{background:#ffa83d0c;border:1px solid #ffa83d30;border-radius:11px;
-  padding:11px 13px;font-size:11px;color:var(--a4);line-height:1.6;margin-bottom:11px}
+  cursor:pointer;touch-action:manipulation;
+  transition:transform .28s var(--spring),background .15s;
+}
+.wake-btn:active{transform:scale(.96);background:rgba(61,200,255,.18)}
+.perm-tip{
+  background:rgba(255,185,61,.07);border:1px solid rgba(255,185,61,.28);
+  border-radius:13px;padding:11px 13px;font-size:11px;color:var(--a4);
+  line-height:1.6;margin-bottom:11px;
+}
 .perm-tip strong{display:block;margin-bottom:3px;font-size:10px;letter-spacing:1px;text-transform:uppercase}
 
 /* ═══════════════ BLUETOOTH ══════════════════════════════ */
-.bt-dev{display:flex;align-items:center;gap:10px;padding:10px 12px;
-  background:var(--s2);border:1px solid var(--brd);border-radius:12px;margin-bottom:7px}
-.bt-ico{font-size:24px;flex-shrink:0;width:36px;text-align:center}
+.bt-dev{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.13);border-radius:14px;margin-bottom:7px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+}
+.bt-ico{flex-shrink:0;width:40px;height:40px;border-radius:12px;
+  background:rgba(61,200,255,.12);border:1px solid rgba(61,200,255,.25);
+  display:flex;align-items:center;justify-content:center;color:var(--a5)}
 .bt-info{flex:1;min-width:0}
 .bt-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bt-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px}
 .bt-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;flex-shrink:0}
-.bt-badge.on{background:#3dffa015;color:var(--a3);border:1px solid #3dffa030}
-.bt-badge.off{background:#ff4a4a10;color:var(--danger);border:1px solid #ff4a4a25}
-.bt-btn{padding:5px 10px;border-radius:8px;font-size:10.5px;font-weight:700;
+.bt-badge.on{background:rgba(63,255,168,.12);color:var(--a3);border:1px solid rgba(63,255,168,.28)}
+.bt-badge.off{background:rgba(255,85,85,.08);color:var(--danger);border:1px solid rgba(255,85,85,.22)}
+.bt-btn{
+  padding:5px 10px;border-radius:9px;font-size:10.5px;font-weight:700;
   font-family:'Inter',sans-serif;cursor:pointer;touch-action:manipulation;
-  transition:transform .1s;border:1px solid var(--brd);background:var(--s1);color:var(--txt)}
+  transition:transform .28s var(--spring);
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:var(--txt);
+}
 .bt-btn:active{transform:scale(.9)}
-.bt-btn.connect{background:var(--a3);border-color:var(--a3);color:#111}
-.bt-btn.disconnect{background:var(--danger);border-color:var(--danger);color:#fff}
-.bt-blueutil-note{background:#ffa83d0c;border:1px solid #ffa83d30;border-radius:10px;
+.bt-btn.connect{background:rgba(63,255,168,.22);border-color:rgba(63,255,168,.45);color:#0d1f17}
+.bt-btn.disconnect{background:rgba(255,85,85,.22);border-color:rgba(255,85,85,.4);color:#fff}
+.bt-blueutil-note{
+  background:rgba(255,185,61,.07);border:1px solid rgba(255,185,61,.28);border-radius:12px;
   padding:10px 12px;font-size:10.5px;color:var(--a4);line-height:1.6;
-  margin-bottom:9px;display:none;font-family:'DM Mono',monospace}
+  margin-bottom:9px;display:none;font-family:'DM Mono',monospace;
+}
 .bt-blueutil-note.show{display:block}
-.bt-refresh{width:100%;height:36px;border-radius:10px;font-size:11px;font-weight:600;
-  background:transparent;border:1px solid var(--brd);color:var(--muted);
-  cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:8px;transition:all .14s}
-.bt-refresh:active{transform:scale(.96)}
+.bt-refresh{width:100%;height:36px;border-radius:11px;font-size:11px;font-weight:600;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:var(--muted);
+  cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:8px;
+  transition:transform .28s var(--spring),background .15s;
+}
+.bt-refresh:active{transform:scale(.96);background:rgba(255,255,255,.10)}
 
 /* ═══════════════ SYSTEM ═════════════════════════════════ */
-.sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:11px}
-.btn-sys{height:50px;border-radius:12px;background:var(--card);
-  border:1px solid var(--brd);color:var(--txt);
-  font-size:11px;font-weight:600;display:flex;align-items:center;
-  justify-content:center;gap:6px;cursor:pointer;
-  touch-action:manipulation;transition:transform .1s}
-.btn-sys:active{transform:scale(.9)}
-.btn-sys .i{font-size:17px}
+.sys-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.btn-sys{
+  height:58px;border-radius:16px;
+  background:rgba(255,255,255,.14);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.24);color:#fff;
+  font-size:11.5px;font-weight:700;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:5px;cursor:pointer;letter-spacing:.1px;
+  touch-action:manipulation;transition:transform .25s var(--spring),background .15s,box-shadow .2s;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 12px rgba(0,0,0,.22);
+  position:relative;overflow:hidden;
+}
+.btn-sys::before{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(160deg,rgba(255,255,255,.1) 0%,transparent 60%)}
+.btn-sys .i{font-size:0;display:flex;align-items:center;justify-content:center}
+.btn-sys .i svg{width:22px;height:22px}
+.btn-sys:active{transform:scale(.88);box-shadow:none}
 .btn-sys.span2{grid-column:span 2}
+/* tinted system button categories */
+.btn-sys.c-blue{background:rgba(61,200,255,.22);border-color:rgba(61,200,255,.45);
+  box-shadow:0 2px 14px rgba(61,200,255,.18),inset 0 1px 0 rgba(255,255,255,.28)}
+.btn-sys.c-purple{background:rgba(128,117,255,.22);border-color:rgba(128,117,255,.45);
+  box-shadow:0 2px 14px rgba(128,117,255,.18),inset 0 1px 0 rgba(255,255,255,.28)}
+.btn-sys.c-green{background:rgba(63,255,168,.18);border-color:rgba(63,255,168,.4);color:#e8fff6;
+  box-shadow:0 2px 14px rgba(63,255,168,.14),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn-sys.warn{background:rgba(255,185,61,.18);border-color:rgba(255,185,61,.4);color:#fff8e8;
+  box-shadow:0 2px 14px rgba(255,185,61,.14),inset 0 1px 0 rgba(255,255,255,.2)}
+.btn-sys.danger{background:rgba(255,85,85,.22);border-color:rgba(255,85,85,.45);
+  box-shadow:0 2px 14px rgba(255,85,85,.18),inset 0 1px 0 rgba(255,255,255,.2)}
 
 /* ═══════════════ TOOLS ══════════════════════════════════ */
-.sout{margin-top:8px;padding:10px;background:var(--s1);border-radius:10px;
+.sout{margin-top:8px;padding:10px;
+  background:rgba(255,255,255,.06);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.10);border-radius:12px;
   font-family:'DM Mono',monospace;font-size:10.5px;color:var(--a3);
   white-space:pre-wrap;word-break:break-all;line-height:1.6;display:none}
 .sout.show{display:block}
-.secinfo{background:var(--s2);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;margin-bottom:9px}
-.secrow{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd)}
+.secinfo{
+  background:rgba(255,255,255,.07);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;margin-bottom:9px;
+}
+.secrow{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .secrow:last-child{border:none}
 .seck{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;
   letter-spacing:1px;flex-shrink:0;width:72px}
@@ -493,42 +723,322 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .secv.ok{color:var(--a3)}
 
 /* ═══════════════ SCREENSHOT ════════════════════════════ */
-.ss-img{width:100%;border-radius:10px;display:block;margin-top:9px;
-  object-fit:contain;max-height:280px;background:var(--s2);
-  border:1px solid var(--brd);cursor:zoom-in}
-.ss-img.zoomed{max-height:none;cursor:zoom-out;border-radius:6px}
-.ss-ts{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);
-  text-align:right;margin-top:4px}
+.ss-img{width:100%;border-radius:12px;display:block;margin-top:9px;
+  object-fit:contain;max-height:280px;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.12);cursor:zoom-in}
+.ss-img.zoomed{max-height:none;cursor:zoom-out;border-radius:8px}
+.ss-ts{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:right;margin-top:4px}
+
 /* ═══════════════ CLIPBOARD ═════════════════════════════ */
-.clip-out{width:100%;min-height:70px;margin-top:8px;background:var(--s1);
-  border:1px solid var(--brd);border-radius:10px;padding:9px 12px;
+.clip-out{
+  width:100%;min-height:70px;margin-top:8px;
+  background:rgba(255,255,255,.06);
+  backdrop-filter:var(--gblur-sm);-webkit-backdrop-filter:var(--gblur-sm);
+  border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:9px 12px;
   color:var(--txt);font-family:'DM Mono',monospace;font-size:11.5px;
-  resize:vertical;line-height:1.5;outline:none;transition:border-color .2s}
-.clip-out:focus{border-color:var(--a1)}
+  resize:vertical;line-height:1.5;outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.clip-out:focus{border-color:rgba(128,117,255,.5);box-shadow:0 0 0 3px rgba(128,117,255,.12)}
+
 /* ═══════════════ TOAST ══════════════════════════════════ */
-.toast{position:fixed;bottom:calc(var(--sb)+16px);left:50%;
-  transform:translateX(-50%) translateY(12px);
-  padding:8px 18px;border-radius:100px;font-size:12px;font-weight:700;
-  white-space:nowrap;opacity:0;transition:opacity .2s,transform .2s;
-  z-index:999;pointer-events:none}
+.toast{
+  position:fixed;bottom:calc(var(--sb)+18px);left:50%;
+  transform:translateX(-50%) translateY(14px);
+  padding:9px 20px;border-radius:100px;font-size:12px;font-weight:700;
+  white-space:nowrap;opacity:0;pointer-events:none;z-index:999;
+  backdrop-filter:var(--gblur);-webkit-backdrop-filter:var(--gblur);
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.22);
+  transition:opacity .22s var(--ease-out),transform .32s var(--spring);
+}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.ok{background:var(--a3);color:#111}
-.toast.err{background:var(--danger);color:#fff}
-.toast.info{background:#fff;color:#111}
+.toast.ok{background:rgba(63,255,168,.85);color:#082412}
+.toast.err{background:rgba(255,85,85,.88);color:#fff}
+.toast.info{background:rgba(255,255,255,.92);color:#111}
+
 /* spinner */
 .spin{display:inline-block;width:11px;height:11px;border-radius:50%;
   border:2px solid rgba(255,255,255,.25);border-top-color:#fff;
   animation:_sp .5s linear infinite;vertical-align:middle;margin-right:4px}
 @keyframes _sp{to{transform:rotate(360deg)}}
 </style>
+<style id="overrides">
+/* ── Page transitions ── */
+@keyframes pageIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:pageIn .26s cubic-bezier(.25,.46,.45,.94) both}
+
+/* ── App tiles: clean centered icons (no full-bleed stretch) ── */
+.app-tile{
+  display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;
+  gap:5px!important;padding:7px 4px 5px!important;
+}
+.app-tile .ico{
+  font-size:30px;line-height:1;
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.45));
+}
+.app-tile .app-icon-img{
+  width:40px!important;height:40px!important;
+  border-radius:11px!important;object-fit:cover!important;
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));
+  flex-shrink:0;
+}
+.app-tile .lbl{
+  font-size:7.5px!important;font-weight:600!important;
+  color:rgba(255,255,255,.7)!important;
+  text-align:center!important;white-space:nowrap!important;
+  overflow:hidden!important;text-overflow:ellipsis!important;
+  max-width:100%!important;
+}
+.app-tile.running .lbl{color:var(--a3)!important}
+.app-tile .run-dot{bottom:4px!important}
+.app-tile .tile-mgr{z-index:5}
+.app-tile.running{border-color:rgba(63,255,168,.5)!important;
+  box-shadow:0 0 0 2px rgba(63,255,168,.2) inset,0 3px 18px rgba(63,255,168,.15)!important}
+
+/* ── Dashboard running chips: fill box ── */
+.dac-icon{position:relative!important;overflow:hidden!important}
+.dac-icon img{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:inherit!important}
+
+/* ── Media: modern circular play button ── */
+.media-row{display:flex!important;align-items:center!important;justify-content:center!important;gap:18px!important}
+.btn-med{width:52px!important;height:52px!important;border-radius:50%!important;flex:unset!important;font-size:20px!important}
+.btn-play-main{width:70px!important;height:70px!important;border-radius:50%!important;font-size:28px!important;
+  box-shadow:0 6px 28px rgba(128,117,255,.55),0 0 0 6px rgba(128,117,255,.12)!important}
+.btn-play-main:active{transform:scale(.88)!important;box-shadow:0 2px 10px rgba(128,117,255,.3)!important}
+
+/* ── Tab SVG alignment ── */
+.tab svg{display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0}
+
+/* ── Battery: modern look ── */
+.battbody{width:24px!important;height:12px!important;border-radius:3.5px!important;border-color:rgba(255,255,255,.45)!important}
+.battbody::after{border-radius:0 2px 2px 0!important}
+
+/* ── Dash quick actions: icon style ── */
+.dqa-ico svg{display:block;width:22px;height:22px}
+.dqa-ico{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;flex-shrink:0!important}
+.dash-qa.a1 .dqa-ico{background:rgba(128,117,255,.2)}
+.dash-qa.a2 .dqa-ico{background:rgba(255,106,170,.2)}
+.dash-qa.a3 .dqa-ico{background:rgba(63,255,168,.2)}
+.dash-qa.a4 .dqa-ico{background:rgba(255,185,61,.2)}
+.dash-qa .dqa-ico{background:rgba(255,255,255,.1)}
+
+/* ── Status bar: seamless gradient blend ── */
+#sbar{
+  background:linear-gradient(to bottom,
+    rgba(7,7,26,.94) 0%,
+    rgba(7,7,26,.82) 55%,
+    rgba(7,7,26,.30) 100%
+  )!important;
+  border-bottom:none!important;
+  box-shadow:0 4px 28px rgba(0,0,0,.16);
+  padding-bottom:12px!important;
+}
+
+/* ── Media buttons: center SVGs ── */
+.btn-med{display:flex!important;align-items:center!important;justify-content:center!important}
+.btn-med svg,.dash-sp-btn svg{display:block;pointer-events:none}
+
+/* ── Now-playing card glow when playing ── */
+@keyframes npPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(128,117,255,.0),0 2px 16px rgba(0,0,0,.25)}
+  50%    {box-shadow:0 0 0 5px rgba(128,117,255,.14),0 4px 24px rgba(0,0,0,.38)}
+}
+#np-card.is-playing{animation:npPulse 2.8s ease-in-out infinite}
+
+/* ── Play button breathe when playing ── */
+@keyframes playGlow{
+  0%,100%{box-shadow:0 6px 28px rgba(128,117,255,.55),0 0 0 6px rgba(128,117,255,.12)}
+  50%    {box-shadow:0 6px 38px rgba(128,117,255,.85),0 0 0 11px rgba(128,117,255,.20)}
+}
+.btn-play-main.is-playing{animation:playGlow 2.2s ease-in-out infinite!important}
+
+/* ── Tile stagger-in animation ── */
+@keyframes tileIn{from{opacity:0;transform:scale(.86) translateY(5px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.app-grid .app-tile{animation:tileIn .32s cubic-bezier(.34,1.56,.64,1) both}
+.app-grid .app-tile:nth-child(1){animation-delay:0ms}
+.app-grid .app-tile:nth-child(2){animation-delay:35ms}
+.app-grid .app-tile:nth-child(3){animation-delay:65ms}
+.app-grid .app-tile:nth-child(4){animation-delay:90ms}
+.app-grid .app-tile:nth-child(5){animation-delay:110ms}
+.app-grid .app-tile:nth-child(6){animation-delay:130ms}
+.app-grid .app-tile:nth-child(7){animation-delay:148ms}
+.app-grid .app-tile:nth-child(8){animation-delay:164ms}
+.app-grid .app-tile:nth-child(n+9){animation-delay:178ms}
+
+/* ── Dashboard chip bounce-in ── */
+@keyframes chipIn{from{opacity:0;transform:scale(.78) translateY(4px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.dash-app-chip{animation:chipIn .3s cubic-bezier(.34,1.56,.64,1) both}
+.dash-app-chip:nth-child(1){animation-delay:0ms}
+.dash-app-chip:nth-child(2){animation-delay:40ms}
+.dash-app-chip:nth-child(3){animation-delay:75ms}
+.dash-app-chip:nth-child(n+4){animation-delay:105ms}
+
+/* ── btn-half: flex for icon+text ── */
+.btn-half{display:flex!important;align-items:center!important;justify-content:center!important}
+.btn-half svg{flex-shrink:0}
+
+/* ── Button press flash ── */
+.btn{overflow:hidden}
+.btn::after{content:'';position:absolute;inset:0;border-radius:inherit;
+  background:rgba(255,255,255,0);pointer-events:none;transition:background .35s}
+.btn:active::after{background:rgba(255,255,255,.10);transition:none}
+
+/* ═══════════════ EXTRA ANIMATIONS ══════════════════════════════════════════ */
+
+/* 1 ── Running dot: ripple pulse ── */
+@keyframes dotRipple{
+  0%  {box-shadow:0 0 0 0 rgba(63,255,168,.7)}
+  70% {box-shadow:0 0 0 6px rgba(63,255,168,0)}
+  100%{box-shadow:0 0 0 0 rgba(63,255,168,0)}
+}
+.app-tile.running .run-dot{animation:dotRipple 1.8s ease-out infinite}
+.dac-dot{animation:dotRipple 1.8s ease-out infinite!important}
+
+/* 2 ── Pin dot: spring fill transition ── */
+.pin-dot{transition:transform .35s var(--spring),background .18s,box-shadow .18s}
+
+/* 3 ── App tile: spring press ── */
+.app-tile{transition:transform .22s var(--spring),box-shadow .22s,border-color .22s}
+.app-tile:active{transform:scale(.88)!important}
+
+/* 4 ── Tab: spring press ── */
+.tab{transition:transform .2s var(--spring),color .18s,opacity .18s}
+.tab:active{transform:scale(.82)}
+
+/* 5 ── Quick action: spring press with transition ── */
+.dash-qa{transition:transform .22s var(--spring),box-shadow .22s!important}
+.dash-qa:active{transform:scale(.90)!important}
+
+/* 6 ── Dashboard card entrance stagger ── */
+@keyframes cardSlideUp{
+  from{opacity:0;transform:translateY(14px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+.page.active .card{animation:cardSlideUp .38s var(--ease-out) both}
+.page.active .card:nth-child(1){animation-delay:30ms}
+.page.active .card:nth-child(2){animation-delay:80ms}
+.page.active .card:nth-child(3){animation-delay:130ms}
+.page.active .card:nth-child(n+4){animation-delay:175ms}
+
+/* 7 ── App menu sheet: spring slide-up / spring slide-down ── */
+@keyframes menuBgIn {from{opacity:0}to{opacity:1}}
+@keyframes menuBgOut{from{opacity:1}to{opacity:0}}
+@keyframes menuSheetIn{
+  from{opacity:0;transform:translateY(48px) scale(.95)}
+  to  {opacity:1;transform:translateY(0)    scale(1)  }
+}
+@keyframes menuSheetOut{
+  from{opacity:1;transform:translateY(0)    scale(1)  }
+  to  {opacity:0;transform:translateY(32px) scale(.97)}
+}
+.app-menu-overlay.menu-open {animation:menuBgIn .22s var(--ease-out) both}
+.app-menu-overlay.menu-open .app-menu{animation:menuSheetIn .36s var(--spring) both}
+.app-menu-overlay.menu-closing{animation:menuBgOut .2s var(--ease-out) both}
+.app-menu-overlay.menu-closing .app-menu{animation:menuSheetOut .22s cubic-bezier(.4,0,1,1) both}
+
+/* 8 ── NP album art: breathe scale when playing ── */
+@keyframes artBreathe{
+  0%,100%{transform:scale(1)}
+  50%    {transform:scale(1.022)}
+}
+#np-art.art-playing{animation:artBreathe 4s ease-in-out infinite}
+
+/* 9 ── Slider thumb: glow on drag ── */
+input[type=range]:focus::-webkit-slider-thumb,
+input[type=range]:active::-webkit-slider-thumb{
+  box-shadow:0 0 0 6px rgba(128,117,255,.28);
+  transform:scale(1.18);
+  transition:transform .18s var(--spring),box-shadow .18s;
+}
+input[type=range]::-webkit-slider-thumb{transition:transform .18s var(--spring),box-shadow .18s}
+
+/* 10 ── Stat value flash on update ── */
+@keyframes statFlash{
+  0%  {opacity:1;transform:scale(1)}
+  30% {opacity:.6;transform:scale(1.12)}
+  100%{opacity:1;transform:scale(1)}
+}
+.stat-flash{animation:statFlash .38s var(--spring) both}
+
+/* 11 ── NP card track-change crossfade ── */
+@keyframes npCrossfade{
+  0%  {opacity:0;transform:translateY(5px)}
+  100%{opacity:1;transform:translateY(0)}
+}
+.np-track-anim #np-track,
+.np-track-anim #np-artist,
+.np-track-anim #np-album{animation:npCrossfade .32s var(--ease-out) both}
+.np-track-anim #np-artist{animation-delay:40ms}
+.np-track-anim #np-album{animation-delay:70ms}
+
+/* 12 ── Login screen entrance stagger ── */
+@keyframes loginFadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+#login-screen .lg-logo  {animation:loginFadeUp .5s var(--spring) .05s both}
+#login-screen .lg-brand {animation:loginFadeUp .5s var(--spring) .12s both}
+#login-screen .lg-title {animation:loginFadeUp .5s var(--spring) .19s both}
+#login-screen .lg-sub   {animation:loginFadeUp .5s var(--spring) .26s both}
+#login-screen .pin-dots {animation:loginFadeUp .5s var(--spring) .33s both}
+#login-screen .pin-grid {animation:loginFadeUp .5s var(--spring) .42s both}
+
+/* 13 ── Dash chip press ── */
+.dash-app-chip{transition:transform .2s var(--spring)}
+.dash-app-chip:active .dac-icon{transform:scale(.84);transition:transform .15s var(--spring)}
+
+/* 14 ── sf-btn: centre SVG ── */
+.sf-btn svg{display:block;pointer-events:none}
+.sf-btns{grid-template-rows:repeat(2,1fr)!important}
+
+/* 15 ── btn-sys: centre flex column ── */
+.btn-sys{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important}
+/* 16 ── qbtn: align icon + text ── */
+.qbtn svg{flex-shrink:0}
+
+/* 17 ── Bluetooth device list slide-in ── */
+@keyframes btDevIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.bt-dev{animation:btDevIn .3s var(--ease-out) both}
+#bt-conn-list .bt-dev:nth-child(1){animation-delay:0ms}
+#bt-conn-list .bt-dev:nth-child(2){animation-delay:50ms}
+#bt-conn-list .bt-dev:nth-child(3){animation-delay:90ms}
+#bt-conn-list .bt-dev:nth-child(n+4){animation-delay:120ms}
+#bt-avail-list .bt-dev:nth-child(1){animation-delay:20ms}
+#bt-avail-list .bt-dev:nth-child(2){animation-delay:65ms}
+#bt-avail-list .bt-dev:nth-child(n+3){animation-delay:100ms}
+
+/* 18 ── SF button active colour flash ── */
+.sf-btn:nth-child(1):active,.sf-btn:nth-child(2):active{background:rgba(61,200,255,.3)!important}
+.sf-btn:nth-child(3):active{background:rgba(63,255,168,.25)!important}
+.sf-btn:nth-child(7):active{background:rgba(63,255,168,.25)!important}
+.sf-btn:nth-child(8):active{background:rgba(255,85,85,.25)!important}
+
+/* 19 ── Type input focus glow ── */
+#type-inp:focus{border-color:rgba(128,117,255,.7)!important;
+  box-shadow:0 0 0 3px rgba(128,117,255,.2),0 0 18px rgba(128,117,255,.1)!important}
+#term-inp:focus{border-color:rgba(63,255,168,.7)!important;
+  box-shadow:0 0 0 3px rgba(63,255,168,.18)!important}
+
+/* 20 ── Dash sp card: subtle press ── */
+.dash-sp{cursor:default}
+.dash-sp-info:active{opacity:.8}
+.dash-sp-art-ph:active,.dash-sp-art:active{transform:scale(.94)}
+
+/* 21 ── System button dark mode toggle animation ── */
+@keyframes dmToggle{0%{transform:rotate(-30deg) scale(.8)}60%{transform:rotate(10deg) scale(1.1)}100%{transform:rotate(0) scale(1)}}
+.dm-spin{animation:dmToggle .45s var(--spring) both}
+</style>
 </head>
 <body>
 
 <!-- ═══════════ LOGIN SCREEN ══════════════════════════════════════════════════ -->
 <div id="login-screen">
-  <div class="lg-logo">🍎</div>
+  <!-- Official Apple logo SVG -->
+  <div class="lg-logo">
+    <svg viewBox="0 0 814 1000" width="54" height="54" fill="white" style="filter:drop-shadow(0 4px 24px rgba(128,117,255,.55))">
+      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.2-57.3-155.4-127.2C223.7 816.1 163 710.7 163 612.1c0-166.4 107.5-254.4 209.5-254.4 55.3 0 101.5 36.3 136.3 36.3 33.3 0 85.2-38.9 147.5-38.9zM649.2 247.8c28.3-35.3 50.8-84 50.8-132.7 0-6.1-.5-12.3-1.6-17.4-47.8 1.8-104.3 31.9-138.5 71.4-26.4 30.3-54.2 78.8-54.2 128.3 0 6.9 1.1 13.9 1.6 16.2 3.2.5 8.4 1.1 13.6 1.1 42.8 0 96.5-28.4 128.3-67z"/>
+    </svg>
+  </div>
   <div class="lg-brand">Murari Systems</div>
-  <div class="lg-title">Murari MacControl <sup style="font-size:12px;font-weight:700;color:var(--a4);-webkit-text-fill-color:var(--a4);vertical-align:super">Beta</sup></div>
+  <div class="lg-title">MS MacCtrl <sup style="font-size:12px;font-weight:700;color:var(--a4);-webkit-text-fill-color:var(--a4);vertical-align:super">Beta</sup></div>
   <div class="lg-sub" id="lg-sub">Enter your PIN to securely connect to your Mac</div>
 
   <div class="pin-dots" id="pin-dots">
@@ -548,9 +1058,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     <button class="np-btn" onclick="npTap(7)">7<span class="np-letters">PQRS</span></button>
     <button class="np-btn" onclick="npTap(8)">8<span class="np-letters">TUV</span></button>
     <button class="np-btn" onclick="npTap(9)">9<span class="np-letters">WXYZ</span></button>
-    <button class="np-btn np-del" onclick="npDel()">⌫</button>
+    <button class="np-btn np-del" onclick="npDel()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+    </button>
     <button class="np-btn" onclick="npTap(0)">0</button>
-    <button class="np-btn np-go" onclick="submitPIN()">✓</button>
+    <button class="np-btn np-go" onclick="submitPIN()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
   </div>
   <div class="lg-err" id="lg-err"></div>
 </div>
@@ -561,7 +1075,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
   <!-- Status bar -->
   <div id="sbar">
     <div class="sb-brand">
-      <span class="sb-brand-name">Murari MacControl</span>
+      <span class="sb-brand-name">MS MacCtrl</span>
       <span class="sb-brand-beta">Beta</span>
     </div>
     <div class="sbseg">
@@ -575,19 +1089,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       <div class="battbody"><div class="battfill" id="bfill" style="width:50%"></div></div>
       <span class="sbtxt" id="sb-batt">…</span>
     </div>
+    <div class="sbseg" style="display:none" id="sb-bt-seg">
+      <span class="sbtxt" id="sb-bt"></span>
+    </div>
   </div>
 
   <!-- Tabs -->
   <div class="tabs">
-    <div class="tab active" data-page="dashboard">⌘ Dashboard</div>
-    <div class="tab" data-page="media">🎵 Media</div>
-    <div class="tab" data-page="apps">📱 Apps</div>
-    <div class="tab" data-page="safari">🌐 Safari</div>
-    <div class="tab" data-page="terminal">⌨️ Terminal</div>
-    <div class="tab" data-page="unlock">🔓 Unlock</div>
-    <div class="tab" data-page="bluetooth">🔵 Bluetooth</div>
-    <div class="tab" data-page="system">🖥️ System</div>
-    <div class="tab" data-page="tools">🔧 Tools</div>
+    <div class="tab active" data-page="dashboard"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Dashboard</div>
+    <div class="tab" data-page="media"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> Media</div>
+    <div class="tab" data-page="apps"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg> Apps</div>
+    <div class="tab" data-page="safari"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg> Safari</div>
+    <div class="tab" data-page="terminal"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> Terminal</div>
+    <div class="tab" data-page="unlock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg> Unlock</div>
+    <div class="tab" data-page="bluetooth"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg> Bluetooth</div>
+    <div class="tab" data-page="system"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> System</div>
+    <div class="tab" data-page="tools"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg> Tools</div>
   </div>
 
   <div class="pane">
@@ -623,18 +1140,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         </div>
       </div>
 
-      <!-- Spotify mini -->
+      <!-- Now Playing mini — tap art/info area to open media tab -->
       <div class="dash-sp" id="dash-sp">
-        <div class="dash-sp-art-ph" id="dash-sp-ph">🎵</div>
-        <img class="dash-sp-art" id="dash-sp-art" style="display:none" alt="">
-        <div class="dash-sp-info">
+        <div class="dash-sp-art-ph" id="dash-sp-ph" onclick="switchTab('media')" style="cursor:pointer">🎵</div>
+        <img class="dash-sp-art" id="dash-sp-art" style="display:none;cursor:pointer" alt="" onclick="switchTab('media')">
+        <div class="dash-sp-info" onclick="switchTab('media')" style="cursor:pointer">
           <div class="dash-sp-track" id="dash-sp-track">Nothing playing</div>
-          <div class="dash-sp-artist" id="dash-sp-artist">Open Spotify to play music</div>
+          <div class="dash-sp-artist" id="dash-sp-artist">Tap to open media controls</div>
         </div>
         <div class="dash-sp-controls">
-          <div class="dash-sp-btn" onclick="ctrl('prev_track')">⏮</div>
-          <div class="dash-sp-btn" id="dash-play-btn" onclick="ctrl('play_pause')">▶</div>
-          <div class="dash-sp-btn" onclick="ctrl('next_track')">⏭</div>
+          <div class="dash-sp-btn" onclick="ctrl('prev_track')"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></div>
+          <div class="dash-sp-btn" id="dash-play-btn" onclick="ctrl('play_pause')"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 000-1.69L9.54 5.98A.998.998 0 008 6.82z"/></svg></div>
+          <div class="dash-sp-btn" onclick="ctrl('next_track')"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6z"/></svg></div>
         </div>
       </div>
 
@@ -655,35 +1172,35 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       <div class="clbl" style="margin-bottom:7px">Quick Actions</div>
       <div class="dash-quick">
         <div class="dash-qa a1" onclick="switchTab('media')">
-          <span class="dqa-ico">🎵</span>
+          <span class="dqa-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg></span>
           <div class="dqa-info"><div class="dqa-name">Media</div><div class="dqa-sub">Play, volume, brightness</div></div>
         </div>
         <div class="dash-qa a2" onclick="switchTab('unlock')">
-          <span class="dqa-ico">🔓</span>
-          <div class="dqa-info"><div class="dqa-name">Unlock</div><div class="dqa-sub">Wake & unlock Mac</div></div>
+          <span class="dqa-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg></span>
+          <div class="dqa-info"><div class="dqa-name">Unlock</div><div class="dqa-sub">Wake &amp; unlock Mac</div></div>
         </div>
         <div class="dash-qa a3" onclick="ctrl('screenshot');toast('✓ Screenshot saved to Desktop')">
-          <span class="dqa-ico">📸</span>
+          <span class="dqa-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
           <div class="dqa-info"><div class="dqa-name">Screenshot</div><div class="dqa-sub">Save to Desktop</div></div>
         </div>
         <div class="dash-qa a4" onclick="switchTab('system')">
-          <span class="dqa-ico">🖥️</span>
-          <div class="dqa-info"><div class="dqa-name">System</div><div class="dqa-sub">Controls & tools</div></div>
+          <span class="dqa-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
+          <div class="dqa-info"><div class="dqa-name">System</div><div class="dqa-sub">Controls &amp; tools</div></div>
         </div>
         <div class="dash-qa" onclick="ctrl('lock')">
-          <span class="dqa-ico">🔒</span>
+          <span class="dqa-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
           <div class="dqa-info"><div class="dqa-name">Lock Screen</div><div class="dqa-sub">Lock display now</div></div>
         </div>
         <div class="dash-qa" onclick="toggleDarkMode()">
-          <span class="dqa-ico" id="dash-dm-ico">🌙</span>
+          <span class="dqa-ico" id="dash-dm-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></span>
           <div class="dqa-info"><div class="dqa-name" id="dash-dm-lbl">Dark Mode</div><div class="dqa-sub">Toggle appearance</div></div>
         </div>
         <div class="dash-qa" onclick="ctrl('mute')">
-          <span class="dqa-ico">🔇</span>
+          <span class="dqa-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg></span>
           <div class="dqa-info"><div class="dqa-name">Mute</div><div class="dqa-sub">Silence output</div></div>
         </div>
         <div class="dash-qa" onclick="confirmSleep()">
-          <span class="dqa-ico">😴</span>
+          <span class="dqa-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21H7a4 4 0 01-4-4V5a2 2 0 012-2h14a2 2 0 012 2v12a4 4 0 01-4 4z"/><path d="M9 7h6M9 11h4"/></svg></span>
           <div class="dqa-info"><div class="dqa-name">Sleep</div><div class="dqa-sub">Put Mac to sleep</div></div>
         </div>
       </div>
@@ -709,9 +1226,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       </div>
 
       <div class="media-row">
-        <button class="btn btn-med" onclick="ctrl('prev_track')">⏮</button>
-        <button class="btn btn-med btn-play-main" id="btn-play" onclick="ctrl('play_pause')">▶</button>
-        <button class="btn btn-med" onclick="ctrl('next_track')">⏭</button>
+        <button class="btn btn-med" onclick="ctrl('prev_track')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+        </button>
+        <button class="btn btn-med btn-play-main" id="btn-play" onclick="ctrl('play_pause')">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 000-1.69L9.54 5.98A.998.998 0 008 6.82z"/></svg>
+        </button>
+        <button class="btn btn-med" onclick="ctrl('next_track')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6z"/></svg>
+        </button>
       </div>
 
       <div class="card">
@@ -720,18 +1243,30 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
           oninput="document.getElementById('vol-val').textContent=this.value+'%'"
           onchange="setVol(this.value)">
         <div class="row" style="margin-top:9px;gap:5px">
-          <button class="btn btn-half" onclick="ctrl('mute')">🔇 Mute</button>
-          <button class="btn btn-half" onclick="ctrl('unmute')">🔊 Unmute</button>
-          <button class="btn btn-half" onclick="ctrl('bright_down')">🔅</button>
-          <button class="btn btn-half" onclick="ctrl('bright_up')">🔆</button>
+          <button class="btn btn-half" onclick="ctrl('mute')" style="gap:5px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>Mute
+          </button>
+          <button class="btn btn-half" onclick="ctrl('unmute')" style="gap:5px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>Unmute
+          </button>
+          <button class="btn btn-half" onclick="ctrl('bright_down')" style="gap:5px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>Dim
+          </button>
+          <button class="btn btn-half" onclick="ctrl('bright_up')" style="gap:5px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>Bright
+          </button>
         </div>
       </div>
 
       <div class="card">
         <div class="clbl">Type on Mac</div>
         <div class="row">
-          <input type="text" class="inp" id="type-inp" placeholder="Keystroke to frontmost app…">
-          <button class="btn btn-ico a1" onclick="sendText()" style="flex-shrink:0">↵</button>
+          <input type="text" class="inp" id="type-inp" placeholder="Type to frontmost app…"
+            autocorrect="off" autocapitalize="none" autocomplete="off" spellcheck="false"
+            inputmode="text" enterkeyhint="send">
+          <button class="btn btn-ico a1" onclick="sendText()" style="flex-shrink:0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 01-4 4H4"/></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -791,14 +1326,30 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         <div class="sf-url" id="sf-url">—</div>
       </div>
       <div class="sf-btns">
-        <button class="sf-btn" onclick="sfAct('back')">◀</button>
-        <button class="sf-btn" onclick="sfAct('forward')">▶</button>
-        <button class="sf-btn" onclick="sfAct('reload')">↻</button>
-        <button class="sf-btn" onclick="sfAct('focus')">🌐</button>
-        <button class="sf-btn" onclick="sfAct('scroll_top')">⬆</button>
-        <button class="sf-btn" onclick="sfAct('scroll_bot')">⬇</button>
-        <button class="sf-btn" onclick="sfAct('new_tab')">＋</button>
-        <button class="sf-btn" onclick="sfAct('close_tab')">✕</button>
+        <button class="sf-btn" onclick="sfAct('back')" title="Back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="sf-btn" onclick="sfAct('forward')" title="Forward">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="sf-btn" onclick="sfAct('reload')" title="Reload">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        </button>
+        <button class="sf-btn" onclick="sfAct('focus')" title="Focus Safari">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+        </button>
+        <button class="sf-btn" onclick="sfAct('scroll_top')" title="Scroll to top">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
+        </button>
+        <button class="sf-btn" onclick="sfAct('scroll_bot')" title="Scroll to bottom">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>
+        </button>
+        <button class="sf-btn" onclick="sfAct('new_tab')" title="New tab">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="sf-btn" onclick="sfAct('close_tab')" title="Close tab">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <div class="card" style="margin-bottom:9px">
         <div class="clbl">Navigate</div>
@@ -828,8 +1379,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
         <div class="clbl">Shell Command</div>
         <div class="row">
           <input type="text" class="inp f3" id="term-inp"
-            placeholder="ls ~/Desktop" autocorrect="off" autocapitalize="none" spellcheck="false">
-          <button class="btn btn-ico a3" onclick="termRun()" style="flex-shrink:0">▶</button>
+            placeholder="ls ~/Desktop" autocorrect="off" autocapitalize="none"
+            autocomplete="off" spellcheck="false" inputmode="url" enterkeyhint="go">
+          <button class="btn btn-ico a3" onclick="termRun()" style="flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 000-1.69L9.54 5.98A.998.998 0 008 6.82z"/></svg>
+          </button>
         </div>
         <div class="mode-row">
           <button class="mode-btn on" id="mode-s" onclick="setMode('silent')">Silent (output here)</button>
@@ -840,19 +1394,37 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
       <div class="card" style="margin-top:9px">
         <div class="clbl">Quick Commands</div>
         <div class="qgrid">
-          <button class="qbtn" onclick="qcmd('ls ~/Desktop')">📁 ls Desktop</button>
-          <button class="qbtn" onclick="qcmd('df -h')">💾 Disk usage</button>
-          <button class="qbtn" onclick="qcmd('top -l 1 -n 5 -stats pid,command,cpu')">📊 CPU top</button>
-          <button class="qbtn" onclick="qcmd('ifconfig | grep inet')">🌐 IP info</button>
-          <button class="qbtn" onclick="qcmd('ps aux|sort -rk3|head -10')">🔥 Mem hogs</button>
-          <button class="qbtn" onclick="qcmd('uptime')">⏱ Uptime</button>
-          <button class="qbtn" onclick="qcmd('ls ~/Downloads|tail -10')">📥 Downloads</button>
-          <button class="qbtn" onclick="qcmd('sw_vers')">🍎 macOS ver</button>
+          <button class="qbtn" onclick="qcmd('ls ~/Desktop')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>ls Desktop
+          </button>
+          <button class="qbtn" onclick="qcmd('df -h')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Disk Usage
+          </button>
+          <button class="qbtn" onclick="qcmd('top -l 1 -n 5 -stats pid,command,cpu')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>CPU Top
+          </button>
+          <button class="qbtn" onclick="qcmd('ifconfig | grep inet')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>IP Info
+          </button>
+          <button class="qbtn" onclick="qcmd('ps aux|sort -rk3|head -10')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Mem Hogs
+          </button>
+          <button class="qbtn" onclick="qcmd('uptime')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Uptime
+          </button>
+          <button class="qbtn" onclick="qcmd('ls ~/Downloads|tail -10')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Downloads
+          </button>
+          <button class="qbtn" onclick="qcmd('sw_vers')">
+            <svg width="13" height="13" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.2-57.3-155.4-127.2C223.7 816.1 163 710.7 163 612.1c0-166.4 107.5-254.4 209.5-254.4 55.3 0 101.5 36.3 136.3 36.3 33.3 0 85.2-38.9 147.5-38.9zM649.2 247.8c28.3-35.3 50.8-84 50.8-132.7 0-6.1-.5-12.3-1.6-17.4-47.8 1.8-104.3 31.9-138.5 71.4-26.4 30.3-54.2 78.8-54.2 128.3 0 6.9 1.1 13.9 1.6 16.2 3.2.5 8.4 1.1 13.6 1.1 42.8 0 96.5-28.4 128.3-67z"/></svg>macOS Ver
+          </button>
         </div>
       </div>
       <div class="card" style="margin-top:9px">
         <div class="clbl">Read Terminal Window</div>
-        <button class="btn btn-full" onclick="readTerm()" style="height:36px;font-size:11px">📋 Get Terminal Contents</button>
+        <button class="btn btn-full a3" onclick="readTerm()" style="height:38px;font-size:11px;gap:6px;display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Get Terminal Contents
+        </button>
         <div class="term-out" id="term-read"></div>
       </div>
     </div>
@@ -919,14 +1491,30 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
     <!-- ── SYSTEM ─────────────────────────────── -->
     <div class="page" id="page-system">
       <div class="sys-grid">
-        <button class="btn-sys" onclick="ctrl('screenshot')"><span class="i">📸</span>Screenshot</button>
-        <button class="btn-sys" onclick="ctrl('show_desktop')"><span class="i">🖥️</span>Show Desktop</button>
-        <button class="btn-sys" onclick="ctrl('mission_control')"><span class="i">🗂️</span>Mission Ctrl</button>
-        <button class="btn-sys" onclick="ctrl('launchpad')"><span class="i">🚀</span>Launchpad</button>
-        <button class="btn-sys" id="btn-darkmode" onclick="toggleDarkMode()"><span class="i">🌙</span>Dark Mode</button>
-        <button class="btn-sys warn" onclick="ctrl('empty_trash')"><span class="i">🗑️</span>Empty Trash</button>
-        <button class="btn-sys warn" onclick="ctrl('force_quit_front')"><span class="i">❌</span>Force Quit</button>
-        <button class="btn-sys danger span2" onclick="confirmSleep()"><span class="i">😴</span>Sleep Mac</button>
+        <button class="btn-sys c-blue" onclick="ctrl('screenshot')">
+          <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></span>Screenshot
+        </button>
+        <button class="btn-sys c-purple" onclick="ctrl('show_desktop')">
+          <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>Show Desktop
+        </button>
+        <button class="btn-sys c-purple" onclick="ctrl('mission_control')">
+          <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="8" height="6" rx="1.5"/><rect x="14" y="3" width="8" height="6" rx="1.5"/><rect x="2" y="13" width="8" height="8" rx="1.5"/><rect x="14" y="13" width="8" height="8" rx="1.5"/></svg></span>Mission Ctrl
+        </button>
+        <button class="btn-sys c-blue" onclick="ctrl('launchpad')">
+          <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="19" cy="5" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="19" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/><circle cx="19" cy="19" r="1.5" fill="currentColor"/></svg></span>Launchpad
+        </button>
+        <button class="btn-sys" id="btn-darkmode" onclick="toggleDarkMode()">
+          <span class="i" id="btn-darkmode-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></span><span>Dark Mode</span>
+        </button>
+        <button class="btn-sys warn" onclick="ctrl('empty_trash')">
+          <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></span>Empty Trash
+        </button>
+        <button class="btn-sys warn" onclick="ctrl('force_quit_front')">
+          <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>Force Quit
+        </button>
+        <button class="btn-sys danger span2" onclick="confirmSleep()">
+          <span class="i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21H7a4 4 0 01-4-4V5a2 2 0 012-2h14a2 2 0 012 2v12a4 4 0 01-4 4z"/><path d="M9 7h6M9 11h4"/></svg></span>Sleep Mac
+        </button>
       </div>
       <div class="card" style="margin-bottom:9px">
         <div class="clbl">Open URL on Mac</div>
@@ -1014,15 +1602,40 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 <script>
 // ─── State ────────────────────────────────────────────
 const LS = 'msmr_token';
-let token = localStorage.getItem(LS) || '';
+let token = (() => { try { return localStorage.getItem(LS) || sessionStorage.getItem(LS) || ''; } catch { return ''; } })();
 let termMode = 'silent';
 let allInstalled = [], allRunning = [], appsLoaded = false;
 let btLoaded = false;
 let lastArtUrl = '';
+let lastTrack = '';
 let pinLength = 6; // default, overridden by server
 
 // icon cache: name -> base64 data URL or emoji fallback
 const iconCache = {};
+
+// Emoji fallback map for system/common macOS apps whose icons may not load
+const APP_EMOJI_MAP = {
+  'tips':'💡','apple tv':'📺','tv':'📺','weather':'🌤','maps':'🗺',
+  'mail':'✉️','messages':'💬','facetime':'📹','photos':'🖼','music':'🎵',
+  'podcasts':'🎙','news':'📰','stocks':'📈','reminders':'✅','calendar':'📅',
+  'notes':'📝','contacts':'👤','safari':'🧭','finder':'🗂','terminal':'⌨️',
+  'system settings':'⚙️','system preferences':'⚙️','app store':'🛍',
+  'xcode':'🔨','automator':'⚙️','chess':'♟','dictionary':'📖','calculator':'🔢',
+  'preview':'👁','quicktime player':'▶️','shortcuts':'⚡','textedit':'📝',
+  'voice memos':'🎤','home':'🏠','health':'❤️','activity monitor':'📊',
+  'disk utility':'💾','console':'🖥','script editor':'📜','keynote':'🎯',
+  'numbers':'🔢','pages':'📄','books':'📚','clock':'🕐','wallet':'💳',
+  'screenshot':'📸','font book':'🔡','vlc':'🎬','slack':'💬','zoom':'📹',
+  'chrome':'🌐','firefox':'🦊','vs code':'💻','visual studio code':'💻',
+};
+function getAppEmoji(name) {
+  const lower = (name||'').toLowerCase().trim();
+  if (APP_EMOJI_MAP[lower]) return APP_EMOJI_MAP[lower];
+  for (const [k,v] of Object.entries(APP_EMOJI_MAP)) {
+    if (lower.includes(k)) return v;
+  }
+  return '📱';
+}
 
 // ─── Login / Setup ────────────────────────────────────
 let pinBuf = '', setupMode = false, setupStep = 0, setupFirst = '';
@@ -1063,6 +1676,7 @@ async function initAuth() {
 
   // Try existing token
   if (token && await checkToken()) {
+    await _deriveEncKey(token);
     showApp();
     return;
   }
@@ -1152,8 +1766,12 @@ async function handleLogin() {
       body: JSON.stringify({pin})
     });
     const d = await r.json();
-    if (d.ok) { token = d.token; localStorage.setItem(LS, token); showApp(); }
-    else {
+    if (d.ok) {
+      token = d.token;
+      try{localStorage.setItem(LS,token);}catch{}try{sessionStorage.setItem(LS,token);}catch{}
+      await _deriveEncKey(token);
+      showApp();
+    } else {
       lgErr(d.error || 'Wrong PIN');
       shakeDots();
     }
@@ -1185,8 +1803,12 @@ async function handleSetup() {
       body: JSON.stringify({pin})
     });
     const d = await r.json();
-    if (d.ok) { token = d.token; localStorage.setItem(LS, token); showApp(); }
-    else lgErr(d.error || 'Setup failed');
+    if (d.ok) {
+      token = d.token;
+      try{localStorage.setItem(LS,token);}catch{}try{sessionStorage.setItem(LS,token);}catch{}
+      await _deriveEncKey(token);
+      showApp();
+    } else lgErr(d.error || 'Setup failed');
   } catch { lgErr('Connection error'); }
 }
 
@@ -1208,19 +1830,82 @@ function showApp() {
   startApp();
 }
 
+// ─── App-layer AES-256-GCM encryption ─────────────────
+// Provides an extra encryption envelope on top of TLS.
+// Key is derived from the session token via HKDF-SHA256.
+// Activated automatically after login; no-ops gracefully if
+// SubtleCrypto is unavailable (plain HTTP dev environments).
+
+let _encKey = null; // CryptoKey | null
+
+function _u8ToB64(u8) {
+  // Safe base64 encode for any size Uint8Array (avoids spread stack overflow)
+  let s = '';
+  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
+  return btoa(s);
+}
+
+async function _deriveEncKey(tokenHex) {
+  if (!crypto?.subtle) { _encKey = null; return; }
+  try {
+    const raw = new Uint8Array(tokenHex.match(/.{2}/g).map(b => parseInt(b, 16)));
+    const enc = new TextEncoder();
+    const mat = await crypto.subtle.importKey('raw', raw, 'HKDF', false, ['deriveKey']);
+    _encKey = await crypto.subtle.deriveKey(
+      { name: 'HKDF', hash: 'SHA-256',
+        salt: enc.encode('MSMacCtrl-v1'), info: enc.encode('aes-gcm-256') },
+      mat,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  } catch { _encKey = null; }
+}
+
+async function _encBody(obj) {
+  if (!_encKey) return JSON.stringify(obj);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const plain = new TextEncoder().encode(JSON.stringify(obj));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, _encKey, plain));
+  const combined = new Uint8Array(12 + ct.length);
+  combined.set(iv); combined.set(ct, 12);
+  return JSON.stringify({ e: _u8ToB64(combined) });
+}
+
+async function _decResponse(text) {
+  let obj;
+  try { obj = JSON.parse(text); } catch { return {}; }
+  if (!_encKey || !obj?.e) return obj; // not encrypted or key unavailable
+  try {
+    const raw = Uint8Array.from(atob(obj.e), c => c.charCodeAt(0));
+    const iv = raw.slice(0, 12), ct = raw.slice(12);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, _encKey, ct);
+    return JSON.parse(new TextDecoder().decode(plain));
+  } catch { return {}; }
+}
+
 // ─── API ──────────────────────────────────────────────
+let _reloading = false;
 async function api(method, path, body) {
-  const opts = {
-    method,
-    headers: {'Content-Type':'application/json','X-Session-Token': token}
-  };
-  if (body) opts.body = JSON.stringify(body);
+  if (_reloading) throw new Error('Unauthorized');
+  const headers = { 'Content-Type': 'application/json', 'X-Session-Token': token };
+  if (_encKey) headers['X-Enc'] = '1'; // tell server to encrypt its response too
+  const opts = { method, headers };
+  if (body !== undefined && body !== null) {
+    opts.body = await _encBody(body);
+  }
   const r = await fetch(path, opts);
   if (r.status === 401) {
-    localStorage.removeItem(LS); token = '';
-    location.reload(); throw new Error('Unauthorized');
+    if (_reloading) throw new Error('Unauthorized');
+    _reloading = true;
+    localStorage.removeItem(LS);
+    try { sessionStorage.removeItem(LS); } catch {}
+    token = '';
+    _encKey = null;
+    setTimeout(() => location.reload(), 50);
+    throw new Error('Unauthorized');
   }
-  return r.json();
+  return _decResponse(await r.text());
 }
 
 // ─── Status bar ───────────────────────────────────────
@@ -1246,7 +1931,12 @@ function updateSignal(ms) {
   const cls = ms<30?'on':ms<150?'warn':'bad';
   bars.forEach((b,i) => b.className='sigbar'+(i<lv?' '+cls:''));
   ping.textContent=ms+'ms'; ping.className='sbtxt '+(ms<80?'ok':ms<150?'warn':'bad');
-  if (dp) dp.textContent = ms+'ms';
+  if (dp) {
+    dp.textContent = ms+'ms';
+    dp.classList.remove('stat-flash');
+    void dp.offsetWidth;
+    dp.classList.add('stat-flash');
+  }
 }
 
 async function updateBattery() {
@@ -1277,7 +1967,9 @@ async function updateBTBadge() {
       const n=(d.connected||[]).length;
       // update bluetooth tab badge in status if element exists
       const el=document.getElementById('sb-bt');
+      const seg=document.getElementById('sb-bt-seg');
       if (el) { el.textContent=n+(n===1?' dev':' devs'); el.className='sbtxt'+(n>0?' ok':''); }
+      if (seg) seg.style.display=n>0?'':'none';
     }
   } catch {}
 }
@@ -1335,14 +2027,26 @@ async function refreshStatus() {
   try {
     const d = await api('GET','/api/status');
     const sp = d.spotify || {};
-    // Track
+    // Track — crossfade text on change
+    const newTrack = sp.track || '';
+    if (newTrack !== lastTrack) {
+      lastTrack = newTrack;
+      const npCard = document.getElementById('np-card');
+      npCard.classList.remove('np-track-anim');
+      void npCard.offsetWidth; // reflow to restart animation
+      npCard.classList.add('np-track-anim');
+    }
     document.getElementById('np-track').textContent  = sp.track  || 'Nothing playing';
     document.getElementById('np-artist').textContent = sp.artist || '';
     document.getElementById('np-album').textContent  = sp.album  || '';
     document.getElementById('np-front').textContent  = 'Active: '+(d.front_app||'?');
     // Play state
     const playing = sp.state === 'playing';
-    document.getElementById('btn-play').textContent = playing ? '⏸' : '▶';
+    const _svgPlay  = '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 000-1.69L9.54 5.98A.998.998 0 008 6.82z"/></svg>';
+    const _svgPause = '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>';
+    document.getElementById('btn-play').innerHTML = playing ? _svgPause : _svgPlay;
+    document.getElementById('btn-play').classList.toggle('is-playing', playing);
+    document.getElementById('np-card').classList.toggle('is-playing', playing);
     const stateEl = document.getElementById('np-state');
     stateEl.className = 'np-state' + (playing ? '' : ' paused');
     stateEl.innerHTML = `<span class="np-state-dot"></span>${playing ? 'PLAYING' : 'PAUSED'}`;
@@ -1351,14 +2055,26 @@ async function refreshStatus() {
       lastArtUrl = sp.art;
       const img = document.getElementById('np-art');
       const ph  = document.getElementById('np-placeholder');
-      img.onload = () => { img.style.display=''; ph.style.display='none'; };
+      img.onload = () => {
+        img.style.display=''; ph.style.display='none';
+        img.classList.remove('art-playing');
+        void img.offsetWidth;
+        if (playing) img.classList.add('art-playing');
+      };
       img.src = sp.art;
       document.getElementById('np-bg').style.backgroundImage = `url(${sp.art})`;
     } else if (!sp.art && lastArtUrl) {
       lastArtUrl = '';
-      document.getElementById('np-art').style.display='none';
+      const img = document.getElementById('np-art');
+      img.classList.remove('art-playing');
+      img.style.display='none';
       document.getElementById('np-placeholder').style.display='';
       document.getElementById('np-bg').style.backgroundImage='';
+    }
+    // Album art breathe toggle when play state changes
+    const npArtEl = document.getElementById('np-art');
+    if (npArtEl && npArtEl.style.display !== 'none') {
+      npArtEl.classList.toggle('art-playing', playing);
     }
     // Volume
     const vol = parseInt(d.volume)||0;
@@ -1374,8 +2090,10 @@ async function refreshStatus() {
     const dArt = document.getElementById('dash-sp-art');
     const dPh = document.getElementById('dash-sp-ph');
     if (dTrack) dTrack.textContent = sp.track || 'Nothing playing';
-    if (dArtist) dArtist.textContent = sp.artist || 'Open Spotify to play music';
-    if (dPlayBtn) dPlayBtn.textContent = playing ? '⏸' : '▶';
+    if (dArtist) dArtist.textContent = sp.artist || (sp.track ? '' : 'Tap to open media controls');
+    const _svgPlaySm  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18a1 1 0 000-1.69L9.54 5.98A.998.998 0 008 6.82z"/></svg>';
+    const _svgPauseSm = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>';
+    if (dPlayBtn) dPlayBtn.innerHTML = playing ? _svgPauseSm : _svgPlaySm;
     if (dArt && dPh) {
       if (sp.art) { dArt.src = sp.art; dArt.style.display=''; dPh.style.display='none'; }
       else { dArt.style.display='none'; dPh.style.display=''; }
@@ -1450,10 +2168,11 @@ async function getAppIcon(name) {
 
 function iconHtml(app, size=26, imgClass='', fallbackClass='ico') {
   const cached = iconCache[app.name];
+  const emoji = app.emoji || getAppEmoji(app.name);
   if (cached) {
     return `<img class="${imgClass}" src="${cached}" alt="" style="width:${size}px;height:${size}px;border-radius:${Math.round(size*.26)}px;object-fit:cover">`;
   }
-  return `<span class="${fallbackClass}" style="font-size:${size}px">${app.emoji||'📱'}</span>`;
+  return `<span class="${fallbackClass}" style="font-size:${size}px">${emoji}</span>`;
 }
 
 // Lazy-load icons for a list of apps and refresh the grid element
@@ -1489,7 +2208,7 @@ async function launchAppImmediate(path, name) {
   try {
     const d = await api('POST','/api/apps/launch',{path, name});
     toast(d.ok ? '✓ '+name : (d.error||'Error'), d.ok?'ok':'err');
-    if (d.ok) setTimeout(loadRunningApps, 2200);
+    if (d.ok) { _invalidateRunningCache(); setTimeout(loadRunningApps, 2200); }
   } catch {}
 }
 
@@ -1507,17 +2226,30 @@ async function loadApps() {
   } catch {}
 }
 
+// Fingerprints for the last rendered running-app lists — used to skip no-op redraws
+let _lastRunningKey = '';
+let _lastDashRunningKey = '';
+
+function _runningKey(apps) {
+  return apps.map(a => a.name).join('\0');
+}
+
+// Call before any action that changes the running-app list so the next poll always redraws
+function _invalidateRunningCache() { _lastRunningKey = ''; _lastDashRunningKey = ''; }
+
 async function loadRunningApps() {
   try {
     const d = await api('GET','/api/apps/running');
     if (d.ok) {
+      const newKey = _runningKey(d.apps);
+      const changed = newKey !== _lastRunningKey;
       allRunning = d.apps;
       // update dashboard running row
       renderDashRunning(d.apps);
       const ct = document.getElementById('dash-running-ct');
       if (ct) ct.textContent = d.apps.length;
-      // refresh apps page if visible
-      if (document.getElementById('page-apps').classList.contains('active')) {
+      // refresh apps page if visible and list actually changed
+      if (changed && document.getElementById('page-apps').classList.contains('active')) {
         renderRunning(d.apps);
       }
     }
@@ -1527,29 +2259,36 @@ async function loadRunningApps() {
 function renderDashRunning(apps) {
   const row = document.getElementById('dash-running-row');
   if (!row) return;
+  const key = _runningKey(apps);
+  if (key === _lastDashRunningKey) return;   // nothing changed — skip repaint
+  _lastDashRunningKey = key;
   if (!apps.length) { row.innerHTML='<div style="color:var(--muted);font-size:11px;padding:8px 0">No apps running</div>'; return; }
   row.innerHTML = apps.map(a => {
     const cached = iconCache[a.name];
+    const emoji = a.emoji || getAppEmoji(a.name);
     const iconContent = cached
-      ? `<img src="${cached}" alt="" style="width:46px;height:46px;border-radius:13px;object-fit:cover">`
-      : `<span style="font-size:22px">${a.emoji||'📱'}</span>`;
+      ? `<img src="${cached}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit">`
+      : `<span style="font-size:26px">${emoji}</span>`;
     return `<div class="dash-app-chip" data-name="${esc(a.name)}" data-emoji="${esc(a.emoji||'📱')}" onclick="tileOpenMenu(this,true)">
       <div class="dac-icon">${iconContent}<div class="dac-dot"></div></div>
       <div class="dac-lbl">${esc(a.name)}</div>
     </div>`;
   }).join('');
   // lazy-load icons for dashboard chips too
-  loadIconsFor(apps, () => renderDashRunning(allRunning));
+  loadIconsFor(apps, () => { _lastDashRunningKey = ''; renderDashRunning(allRunning); });
 }
 
 function renderRunning(apps) {
   const g = document.getElementById('running-grid');
   if (!g) return;
+  const key = _runningKey(apps);
+  if (key === _lastRunningKey) return;   // nothing changed — skip repaint
+  _lastRunningKey = key;
   if (!apps.length) {
     g.innerHTML='<div class="ldrow">No running apps found</div>'; return;
   }
   g.innerHTML = apps.map(a => {
-    const ico = iconHtml(a, 34, 'app-icon-img');
+    const ico = iconHtml(a, 40, 'app-icon-img');
     // Use data-* attributes to safely carry app name — avoids &#39; decode bug in onclick
     return `<div class="app-tile running" data-name="${esc(a.name)}" data-emoji="${esc(a.emoji||'📱')}" onclick="tileFocus(this)">
       <div class="run-dot"></div>
@@ -1567,7 +2306,7 @@ function renderInstalled(apps) {
   if (!apps.length) { g.innerHTML='<div class="ldrow">No apps found</div>'; return; }
   g.innerHTML = apps.map(a => {
     const isRunning = runSet.has(a.name.toLowerCase());
-    const ico = iconHtml(a, 34, 'app-icon-img');
+    const ico = iconHtml(a, 40, 'app-icon-img');
     const mgr = isRunning
       ? `<button class="tile-mgr" data-name="${esc(a.name)}" data-emoji="${esc(a.emoji||'📱')}" onclick="event.stopPropagation();tileOpenMenu(this,true)" title="Manage">⋯</button>`
       : '';
@@ -1597,14 +2336,18 @@ function openAppMenu(name, emoji, isRunning) {
   _menuApp = {name, emoji, isRunning};
   const cached = iconCache[name];
   const iconEl = document.getElementById('amenu-icon');
+  function _setIconImg(url) {
+    const img = document.createElement('img');
+    img.src = url; img.alt = '';
+    iconEl.replaceChildren(img);
+  }
   if (cached) {
-    iconEl.innerHTML = `<img src="${cached}" alt="">`;
+    _setIconImg(cached);
   } else {
-    iconEl.innerHTML = `<span id="amenu-ico-emoji">${emoji||'📱'}</span>`;
-    // try to load icon in background
-    getAppIcon(name).then(url => {
-      if (url) iconEl.innerHTML = `<img src="${url}" alt="">`;
-    });
+    const span = document.createElement('span');
+    span.id = 'amenu-ico-emoji'; span.textContent = emoji || '📱';
+    iconEl.replaceChildren(span);
+    getAppIcon(name).then(url => { if (url) _setIconImg(url); });
   }
   document.getElementById('amenu-name').textContent = name;
   const st = document.getElementById('amenu-status');
@@ -1612,13 +2355,23 @@ function openAppMenu(name, emoji, isRunning) {
   st.className = 'app-menu-status' + (isRunning ? ' running' : '');
   document.getElementById('amenu-quit').style.display = isRunning ? '' : 'none';
   document.getElementById('amenu-fq').style.display = isRunning ? '' : 'none';
-  document.getElementById('app-menu').style.display = 'flex';
+  const overlay = document.getElementById('app-menu');
+  overlay.classList.remove('menu-closing');
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.add('menu-open'));
 }
 
 function closeAppMenu(e) {
   if (e && e.target !== document.getElementById('app-menu')) return;
-  document.getElementById('app-menu').style.display = 'none';
-  _menuApp = null;
+  const overlay = document.getElementById('app-menu');
+  overlay.classList.remove('menu-open');
+  overlay.classList.add('menu-closing');
+  const sheet = overlay.querySelector('.app-menu');
+  sheet.addEventListener('animationend', () => {
+    overlay.style.display = 'none';
+    overlay.classList.remove('menu-closing');
+    _menuApp = null;
+  }, {once: true});
 }
 
 async function menuAction(action) {
@@ -1632,20 +2385,20 @@ async function menuAction(action) {
     try {
       const d = await api('POST','/api/apps/launch',{name, path:''});
       toast(d.ok?'✓ Switched to '+name:(d.error||'Error'), d.ok?'ok':'err');
-      setTimeout(loadRunningApps, 2000);
+      _invalidateRunningCache(); setTimeout(loadRunningApps, 2000);
     } catch {}
   } else if (action === 'quit') {
     try {
       const d = await api('POST','/api/apps/quit',{name});
       toast(d.ok?'✓ Quit '+name:(d.error||'Error'), d.ok?'ok':'err');
-      setTimeout(loadRunningApps, 2500);
+      _invalidateRunningCache(); setTimeout(loadRunningApps, 2500);
     } catch {}
   } else if (action === 'force_quit') {
     if (!confirm(`Force quit "${name}"? Unsaved data will be lost.`)) return;
     try {
       const d = await api('POST','/api/apps/force_quit',{name});
       toast(d.ok?'✓ Force quit '+name:(d.error||'Error'), d.ok?'ok':'err');
-      setTimeout(loadRunningApps, 1500);
+      _invalidateRunningCache(); setTimeout(loadRunningApps, 1500);
     } catch {}
   }
 }
@@ -1683,7 +2436,8 @@ async function sfRunJS() {
   catch { out.textContent='Error'; }
 }
 ['sf-nav','sf-tab'].forEach(id=>{
-  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter') id.includes('tab')?sfTab():sfNav();});
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('keydown',e=>{if(e.key==='Enter') id.includes('tab')?sfTab():sfNav();});
 });
 
 // ─── Terminal ─────────────────────────────────────────
@@ -1769,12 +2523,40 @@ async function loadBluetooth() {
   document.getElementById('bt-avail-list').innerHTML='';
   try {
     const d=await api('GET','/api/bluetooth');
-    if(!d.ok){ document.getElementById('bt-conn-list').innerHTML=`<div style="color:var(--danger);font-size:11.5px;padding:6px 2px">Error: ${d.error}</div>`; return; }
+    if(!d.ok){ const _btErr=document.createElement('div'); _btErr.style.cssText='color:var(--danger);font-size:11.5px;padding:6px 2px'; _btErr.textContent='Error: '+(d.error||'Unknown error'); document.getElementById('bt-conn-list').replaceChildren(_btErr); return; }
     renderBTList('bt-conn-list', d.connected||[], true);
     renderBTList('bt-avail-list', d.available||[], false);
-    const sbt = document.getElementById('sb-bt');
-    if (sbt) { sbt.textContent=(d.connected?.length||0)+' devs'; sbt.className='sbtxt'+((d.connected?.length||0)>0?' ok':''); }
+    const sbt=document.getElementById('sb-bt');
+    const sbtseg=document.getElementById('sb-bt-seg');
+    const nc=d.connected?.length||0;
+    if (sbt) { sbt.textContent=nc+(nc===1?' dev':' devs'); sbt.className='sbtxt'+(nc>0?' ok':''); }
+    if (sbtseg) sbtseg.style.display=nc>0?'':'none';
   } catch { document.getElementById('bt-conn-list').innerHTML='<div style="color:var(--danger);font-size:11.5px">Error</div>'; }
+}
+
+// SVG icons keyed by device-name keywords
+function _btDevIcon(name) {
+  const n = (name||'').toLowerCase();
+  if (/airpod|earpod|headphone|headset|bud|ear/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>`;
+  if (/speaker|homepod|sonos|bose|jbl|soundbar/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="3"/><circle cx="12" cy="14" r="4"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="12" cy="6" r="1.5" fill="currentColor"/></svg>`;
+  if (/keyboard|keeb/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="13" rx="2"/><line x1="6" y1="11" x2="6" y2="11"/><line x1="10" y1="11" x2="10" y2="11"/><line x1="14" y1="11" x2="14" y2="11"/><line x1="18" y1="11" x2="18" y2="11"/><line x1="6" y1="15" x2="18" y2="15"/></svg>`;
+  if (/mouse|trackpad|magic mouse/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 017 7v6a7 7 0 01-14 0V9a7 7 0 017-7z"/><line x1="12" y1="2" x2="12" y2="11"/></svg>`;
+  if (/iphone|phone|android/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-width="2.5"/></svg>`;
+  if (/ipad|tablet/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="3"/><circle cx="12" cy="17.5" r="1" fill="currentColor"/></svg>`;
+  if (/mac|macbook|imac|laptop/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M2 19h20"/><path d="M5 19v1M19 19v1"/></svg>`;
+  if (/watch|applewatch/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="16" rx="4"/><path d="M9 2h6M9 22h6"/><polyline points="12 8 12 12 14 13"/></svg>`;
+  if (/controller|gamepad|joystick/.test(n))
+    return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><circle cx="15" cy="11" r="1" fill="currentColor"/><circle cx="17" cy="13" r="1" fill="currentColor"/><path d="M6 8h12a2 2 0 012 2v5a4 4 0 01-4 4H8a4 4 0 01-4-4v-5a2 2 0 012-2z"/></svg>`;
+  // default: Bluetooth symbol
+  return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>`;
 }
 
 function renderBTList(id, devices, connected) {
@@ -1784,21 +2566,22 @@ function renderBTList(id, devices, connected) {
     const addr=dev.address||'';
     const actBtn=addr
       ? connected
-        ? `<button class="bt-btn disconnect" onclick="btToggle('${esc(addr)}',false)">Disconnect</button>`
-        : `<button class="bt-btn connect" onclick="btToggle('${esc(addr)}',true)">Connect</button>`
+        ? `<button class="bt-btn disconnect" data-addr="${esc(addr)}" data-conn="0" onclick="btToggleEl(this)">Disconnect</button>`
+        : `<button class="bt-btn connect" data-addr="${esc(addr)}" data-conn="1" onclick="btToggleEl(this)">Connect</button>`
       : '';
     return `<div class="bt-dev">
-      <div class="bt-ico">${dev.emoji||'🔵'}</div>
+      <div class="bt-ico">${_btDevIcon(dev.name)}</div>
       <div class="bt-info">
         <div class="bt-name">${esc(dev.name)}</div>
-        <div class="bt-meta">${dev.type||''}${addr?' · '+addr:''}</div>
+        <div class="bt-meta">${dev.type||'Bluetooth Device'}${addr?' · '+addr:''}</div>
       </div>
-      <span class="bt-badge ${connected?'on':'off'}">${connected?'●':'○'}</span>
+      <span class="bt-badge ${connected?'on':'off'}">${connected?'● On':'○ Off'}</span>
       ${actBtn}
     </div>`;
   }).join('');
 }
 
+function btToggleEl(el) { btToggle(el.dataset.addr, el.dataset.conn === '1'); }
 async function btToggle(address, connect) {
   haptic();
   try {
@@ -1826,9 +2609,14 @@ async function changePIN() {
   if(!op||!np){ toast('Fill both fields','err'); return; }
   try {
     const d=await api('POST','/api/auth/change_pin',{old_pin:op,new_pin:np});
-    res.textContent=d.ok?'✓ PIN changed':'✗ '+d.error;
+    res.textContent=d.ok?'✓ PIN changed — logging out…':'✗ '+d.error;
     res.className='unl-res show '+(d.ok?'ok':'err');
-    if(d.ok){ document.getElementById('cp-old').value=''; document.getElementById('cp-new').value=''; }
+    if(d.ok){
+      document.getElementById('cp-old').value=''; document.getElementById('cp-new').value='';
+      // Server invalidated all sessions — must re-login
+      _encKey = null;
+      setTimeout(() => { localStorage.removeItem('msmr_token'); location.reload(); }, 1400);
+    }
   } catch { res.textContent='Error'; res.className='unl-res show err'; }
 }
 
@@ -1836,17 +2624,28 @@ async function changePIN() {
 async function doLogout() {
   if(!confirm('Log out?')) return;
   try { await api('POST','/api/auth/logout',{}); } catch {}
+  _encKey = null;
   localStorage.removeItem(LS); location.reload();
+}
+
+const _svgMoon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`;
+const _svgSun  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+
+function _applyDarkModeBtn(isDark) {
+  const ico = document.getElementById('btn-darkmode-ico');
+  if (ico) {
+    ico.innerHTML = isDark ? _svgSun : _svgMoon;
+    ico.classList.remove('dm-spin'); void ico.offsetWidth; ico.classList.add('dm-spin');
+  }
+  const btn = document.getElementById('btn-darkmode');
+  if (btn) btn.lastChild.textContent = isDark ? 'Light Mode' : 'Dark Mode';
 }
 
 // ─── Dark Mode ────────────────────────────────────────
 async function refreshDarkMode() {
   try {
     const d = await api('GET','/api/darkmode');
-    const btn = document.getElementById('btn-darkmode');
-    if (btn) {
-      btn.innerHTML = `<span class="i">${d.dark_mode ? '☀️' : '🌙'}</span>${d.dark_mode ? 'Light Mode' : 'Dark Mode'}`;
-    }
+    _applyDarkModeBtn(d.dark_mode);
   } catch {}
 }
 
@@ -1854,11 +2653,14 @@ async function toggleDarkMode() {
   haptic();
   try {
     const d = await api('POST','/api/darkmode/toggle',{});
+    _applyDarkModeBtn(d.dark_mode);
     const btn = document.getElementById('btn-darkmode');
-    if (btn) btn.innerHTML = `<span class="i">${d.dark_mode ? '☀️' : '🌙'}</span>${d.dark_mode ? 'Light Mode' : 'Dark Mode'}`;
+    if (btn) { /* already handled by _applyDarkModeBtn */ }
     const dashIco = document.getElementById('dash-dm-ico');
     const dashLbl = document.getElementById('dash-dm-lbl');
-    if (dashIco) dashIco.textContent = d.dark_mode ? '☀️' : '🌙';
+    if (dashIco) dashIco.innerHTML = d.dark_mode
+      ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
+      : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
     if (dashLbl) dashLbl.textContent = d.dark_mode ? 'Light Mode' : 'Dark Mode';
     toast(d.dark_mode ? '🌙 Dark mode on' : '☀️ Light mode on');
   } catch { toast('Error','err'); }
@@ -1873,6 +2675,7 @@ async function takeScreenshot() {
     const d = await api('GET','/api/screenshot');
     if (!d.ok) { toast(d.error || 'Capture failed', 'err'); return; }
     const img = document.getElementById('ss-img');
+    if (!img) return;
     img.src = `data:${d.mime};base64,${d.data}`;
     img.style.display = 'block';
     img.classList.remove('zoomed');
@@ -1936,10 +2739,11 @@ document.getElementById('notif-msg').addEventListener('keydown',e=>{if(e.key==='
     const dy = e.changedTouches[0].clientY - sy;
     const dt = Date.now() - sTime;
 
-    // Must be: fast enough (<500ms), wide enough (≥65px), clearly horizontal (dx dominates dy by 2.2×)
-    if (dt > 500) return;
-    if (Math.abs(dx) < 65) return;
-    if (Math.abs(dx) < Math.abs(dy) * 2.2) return;
+    // Must be: fast (<350ms), wide (≥90px), strongly horizontal (dx > dy × 3.5), minimal vertical drift
+    if (dt > 350) return;
+    if (Math.abs(dx) < 90) return;
+    if (Math.abs(dy) > 40) return;
+    if (Math.abs(dx) < Math.abs(dy) * 3.5) return;
 
     const activeTab = document.querySelector('.tab.active');
     if (!activeTab) return;
