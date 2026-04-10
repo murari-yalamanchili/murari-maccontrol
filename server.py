@@ -402,9 +402,18 @@ def get_fingerprint() -> str:
 
 def wake_display() -> dict:
     try:
-        subprocess.Popen(["caffeinate", "-u", "-t", "5"])
-        time.sleep(0.5)
-        run_script('tell application "System Events" to key code 126', timeout=3)
+        # Assert user-activity to prevent immediate re-sleep
+        subprocess.Popen(["caffeinate", "-u", "-t", "10"])
+        # Give the display hardware enough time to actually power on
+        time.sleep(1.2)
+        # Up-arrow wakes a sleeping display; Escape dismisses the screensaver
+        # overlay on macOS Ventura/Sonoma/Sequoia so the lock screen is visible
+        run_script('''
+tell application "System Events"
+    key code 126
+    delay 0.8
+    key code 53
+end tell''', timeout=5)
         return {"ok": True, "output": "Display wake signal sent"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -413,29 +422,42 @@ def unlock_mac(password: str) -> dict:
     if not password:
         return {"ok": False, "error": "No password provided"}
 
-    safe = password.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "").replace("\r", "")
+    safe = (password
+            .replace("\\", "\\\\")
+            .replace('"', '\\"')
+            .replace("\n", "")
+            .replace("\r", ""))
 
-    # Aggressively wake the display with extra hold time
-    subprocess.Popen(["caffeinate", "-u", "-t", "15"])
-    time.sleep(2.0)   # give display extra time to fully power on
+    # Assert user-activity so macOS doesn't re-sleep during the sequence
+    subprocess.Popen(["caffeinate", "-u", "-t", "30"])
+    # Wait for the display to fully power on before sending any key events
+    time.sleep(2.5)
 
-    # Multi-phase sequence:
-    # – up-arrow (126) wakes screensaver / display
-    # – space (49)     triggers password field on macOS lock screen
-    # – keystroke      types the password
-    # – return (36)    submits
+    # Key sequence for macOS Ventura / Sonoma / Sequoia lock screen:
+    #
+    #  126 = up-arrow   — wakes display from sleep / dismisses blank screen
+    #  delay 2.0        — wait for lock screen UI to fully render
+    #  53  = Escape     — on Ventura+ this dismisses the "wallpaper clock" overlay
+    #                     and reveals the password field (replaces the old Space trick)
+    #  49  = Space      — secondary nudge in case Escape alone didn't surface the field
+    #  delay 1.5        — wait for the password field to become active
+    #  keystroke        — type the password
+    #  delay 0.4
+    #  36  = Return     — submit
     script = f'''
 tell application "System Events"
     key code 126
-    delay 1.8
+    delay 2.0
+    key code 53
+    delay 0.6
     key code 49
-    delay 1.2
+    delay 1.5
     keystroke "{safe}"
-    delay 0.5
+    delay 0.4
     key code 36
 end tell
 '''
-    result = run_script(script, timeout=20)
+    result = run_script(script, timeout=25)
     err = result.get("error", "")
     if ("assistive" in err.lower() or "accessibility" in err.lower()
             or "-1719" in err or "-25211" in err
@@ -447,7 +469,7 @@ end tell
             "② Automation → Terminal → enable System Events\n"
             "After granting both, restart the server and try again.\n"
             "Note: macOS hard-locks the login screen — this works best "
-            "for display-sleep (not a full logout)."
+            "for display-sleep, not a full logout screen."
         )
     return result
 
