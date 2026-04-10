@@ -135,8 +135,14 @@ def hash_pin(pin: str, salt: str = None):
     return salt, h.hex()
 
 def verify_pin(pin: str, salt: str, stored: str) -> bool:
+    # Try new method first (raw bytes salt)
     _, computed = hash_pin(pin, salt)
-    return secrets.compare_digest(computed, stored)
+    if secrets.compare_digest(computed, stored):
+        return True
+    # Fallback: try legacy method (salt encoded as UTF-8 ASCII) for credentials
+    # created before the bytes.fromhex() fix was applied.
+    legacy_h = hashlib.pbkdf2_hmac("sha256", pin.encode(), salt.encode(), 200_000)
+    return secrets.compare_digest(legacy_h.hex(), stored)
 
 # ─── macOS Keychain ──────────────────────────────────────────────────────────
 # PIN credentials are stored in Keychain, NOT in config.json.
