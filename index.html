@@ -1674,9 +1674,8 @@ async function initAuth() {
     return;
   }
 
-  // Try existing token
+  // Try existing token (checkToken also derives _encKey if server supports it)
   if (token && await checkToken()) {
-    await _deriveEncKey(token);
     showApp();
     return;
   }
@@ -1702,8 +1701,11 @@ function buildDots(n) {
 async function checkToken() {
   if (!token) return false;
   try {
-    const r = await fetch('/api/ping', { headers: {'X-Session-Token': token} });
-    return r.ok;
+    const r = await fetch('/api/auth/status', { headers: {'X-Session-Token': token} });
+    if (!r.ok) return false;
+    const d = await r.json();
+    if (d.authenticated && d.enc_supported) await _deriveEncKey(token);
+    return !!d.authenticated;
   } catch { return false; }
 }
 
@@ -1769,7 +1771,7 @@ async function handleLogin() {
     if (d.ok) {
       token = d.token;
       try{localStorage.setItem(LS,token);}catch{}try{sessionStorage.setItem(LS,token);}catch{}
-      await _deriveEncKey(token);
+      if (d.enc_supported) await _deriveEncKey(token);
       showApp();
     } else {
       lgErr(d.error || 'Wrong PIN');
@@ -1806,7 +1808,7 @@ async function handleSetup() {
     if (d.ok) {
       token = d.token;
       try{localStorage.setItem(LS,token);}catch{}try{sessionStorage.setItem(LS,token);}catch{}
-      await _deriveEncKey(token);
+      if (d.enc_supported) await _deriveEncKey(token);
       showApp();
     } else lgErr(d.error || 'Setup failed');
   } catch { lgErr('Connection error'); }
@@ -1904,6 +1906,17 @@ async function api(method, path, body) {
     _encKey = null;
     setTimeout(() => location.reload(), 50);
     throw new Error('Unauthorized');
+  }
+  if (r.status === 503) {
+    const d = await r.json().catch(() => ({}));
+    if (d.error === 'enc_unavailable') {
+      // Server can't decrypt — disable encryption and retry this request plain
+      _encKey = null;
+      delete opts.headers['X-Enc'];
+      if (body !== undefined && body !== null) opts.body = JSON.stringify(body);
+      const r2 = await fetch(path, opts);
+      return _decResponse(await r2.text());
+    }
   }
   return _decResponse(await r.text());
 }

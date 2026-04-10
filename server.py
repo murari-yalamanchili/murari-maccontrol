@@ -65,9 +65,17 @@ def enc_response(data: dict, token: str) -> dict:
         return {"enc_error": True}
 
 def dec_request(body: dict, token: str) -> dict:
-    """Decrypt an incoming {"e": base64(nonce+ct)} request body back to a dict."""
-    if not _ENC_OK or "e" not in body or not token:
-        return body
+    """Decrypt an incoming {"e": base64(nonce+ct)} request body back to a dict.
+    Returns None if the body is encrypted but the server cannot decrypt it
+    (caller should respond with 503 enc_unavailable so the client can retry).
+    """
+    if "e" not in body:
+        return body  # unencrypted body — pass through
+    if not token:
+        return {}
+    if not _ENC_OK:
+        # Client encrypted but server lacks the cryptography package — signal the caller
+        return None
     try:
         raw = base64.b64decode(body["e"])
         if len(raw) < 13:  # need at least 12-byte nonce + 1 byte
@@ -1151,7 +1159,9 @@ class Handler(BaseHTTPRequestHandler):
     # Maximum accepted request body size (1 MB)
     _MAX_BODY = 1 * 1024 * 1024
 
-    def body(self) -> dict:
+    def body(self):
+        """Return parsed (and decrypted) request body, or None if the body was
+        encrypted but the server cannot decrypt it (enc_unavailable)."""
         try:
             n = int(self.headers.get("Content-Length", 0))
         except (ValueError, TypeError):
@@ -1165,7 +1175,7 @@ class Handler(BaseHTTPRequestHandler):
             return {}
         # Auto-decrypt if client sent an encrypted body
         if "e" in parsed:
-            return dec_request(parsed, self.token())
+            return dec_request(parsed, self.token())  # may return None (enc unavailable)
         return parsed
 
     def do_OPTIONS(self):
@@ -1200,7 +1210,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/auth/status":
             self.send_json({"ok":True,"setup_required":setup_required(),
                             "authenticated":self.authed(),"fingerprint":get_fingerprint(),
-                            "pin_length":get_pin_length()})
+                            "pin_length":get_pin_length(),"enc_supported":_ENC_OK})
         elif path == "/api/status":       self.send_json(get_status())
         elif path == "/api/battery":      self.send_json(get_battery())
         elif path == "/api/bluetooth":    self.send_json(get_bluetooth_cached())
@@ -1238,6 +1248,14 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         data = self.body()
 
+        # body() returns None when the client sent an encrypted body but the
+        # server lacks the cryptography package and cannot decrypt it.
+        # Tell the client so it can clear _encKey and retry unencrypted.
+        if data is None:
+            self.send_json({"ok": False, "error": "enc_unavailable",
+                            "enc_supported": False}, 503)
+            return
+
         # ── Auth endpoints (no token required) ──
         if path == "/api/auth/login":
             ip = self.ip()
@@ -1250,7 +1268,7 @@ class Handler(BaseHTTPRequestHandler):
             pin = data.get("pin","")
             if verify_pin_kc(pin):
                 clear_fail(ip)
-                self.send_json({"ok":True,"token":create_session()})
+                self.send_json({"ok":True,"token":create_session(),"enc_supported":_ENC_OK})
             else:
                 record_fail(ip)
                 with _state_lock:
@@ -1272,7 +1290,7 @@ class Handler(BaseHTTPRequestHandler):
                 _cfg["pin_salt"] = salt; _cfg["pin_hash"] = h
                 _cfg["pin_length"] = len(pin)
                 save_config()
-            self.send_json({"ok":True,"token":create_session()})
+            self.send_json({"ok":True,"token":create_session(),"enc_supported":_ENC_OK})
             return
 
         # ── Authenticated routes ──
