@@ -410,18 +410,12 @@ def get_fingerprint() -> str:
 
 def wake_display() -> dict:
     try:
-        # Assert user-activity to prevent immediate re-sleep
-        subprocess.Popen(["caffeinate", "-u", "-t", "10"])
-        # Give the display hardware enough time to actually power on
-        time.sleep(1.2)
-        # Up-arrow wakes a sleeping display; Escape dismisses the screensaver
-        # overlay on macOS Ventura/Sonoma/Sequoia so the lock screen is visible
-        run_script('''
-tell application "System Events"
-    key code 126
-    delay 0.8
-    key code 53
-end tell''', timeout=5)
+        # -d prevents display idle-sleep; -u asserts user-activity (wakes display)
+        subprocess.Popen(["caffeinate", "-d", "-u", "-t", "15"])
+        time.sleep(0.5)
+        # Up-arrow is a non-printable key that wakes the display without
+        # typing a character into any focused field on the lock screen
+        run_script('tell application "System Events" to key code 126', timeout=5)
         return {"ok": True, "output": "Display wake signal sent"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -436,32 +430,33 @@ def unlock_mac(password: str) -> dict:
             .replace("\n", "")
             .replace("\r", ""))
 
-    # Assert user-activity so macOS doesn't re-sleep during the sequence
-    subprocess.Popen(["caffeinate", "-u", "-t", "30"])
-    # Wait for the display to fully power on before sending any key events
-    time.sleep(2.5)
+    # -d: prevent display from going back to sleep during the sequence
+    # -u: assert user-activity to wake the display
+    # Keep both assertions alive for the full unlock window (60 s)
+    subprocess.Popen(["caffeinate", "-d", "-u", "-t", "60"])
+    # Give caffeinate time to establish its power assertion before we
+    # send key events — otherwise the display can flash on then off
+    time.sleep(1.0)
 
-    # Key sequence for macOS Ventura / Sonoma / Sequoia lock screen:
+    # macOS lock screen sequence (Ventura / Sonoma / Sequoia / Tahoe):
     #
-    #  126 = up-arrow   — wakes display from sleep / dismisses blank screen
-    #  delay 2.0        — wait for lock screen UI to fully render
-    #  53  = Escape     — on Ventura+ this dismisses the "wallpaper clock" overlay
-    #                     and reveals the password field (replaces the old Space trick)
-    #  49  = Space      — secondary nudge in case Escape alone didn't surface the field
-    #  delay 1.5        — wait for the password field to become active
-    #  keystroke        — type the password
-    #  delay 0.4
-    #  36  = Return     — submit
+    #  key 126  — up-arrow: wakes the display from sleep.
+    #             Non-printable, so it does NOT type into the password field.
+    #  delay 3.0 — wait for the display hardware to power on and for the
+    #             lock screen cover (wallpaper + clock) to fully render.
+    #  keystroke — typing any character at the cover automatically focuses
+    #             the password field AND inserts the character.  By typing
+    #             the full password here we skip the separate
+    #             "show password field" step entirely — no Escape, no Space
+    #             needed (those caused sounds and immediate re-sleep on Tahoe).
+    #  delay 0.5
+    #  key 36   — Return: submit the password.
     script = f'''
 tell application "System Events"
     key code 126
-    delay 2.0
-    key code 53
-    delay 0.6
-    key code 49
-    delay 1.5
+    delay 3.0
     keystroke "{safe}"
-    delay 0.4
+    delay 0.5
     key code 36
 end tell
 '''
@@ -476,8 +471,7 @@ end tell
             "① Accessibility → enable Terminal (or iTerm2 / your shell)\n"
             "② Automation → Terminal → enable System Events\n"
             "After granting both, restart the server and try again.\n"
-            "Note: macOS hard-locks the login screen — this works best "
-            "for display-sleep, not a full logout screen."
+            "Note: this works for display-sleep lock, not a full logout screen."
         )
     return result
 
